@@ -90,12 +90,13 @@
   }
 
   /* ===== DIMENSIONADO EXACTO RÉPLICA GOOGLE SHEETS ===== */
-  .rich-field{
-    white-space:pre-wrap; word-break:break-word; outline:none;
-    line-height:1.25; font-size:13px; font-family: Arial, sans-serif;
-    overflow: hidden;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
-  }
+ .rich-field{
+  white-space: pre; /* Fuerza a no romper la línea automáticamente */
+  overflow-x: hidden; /* Oculta lo que se pase del ancho hasta pulsar Enter */
+  outline:none;
+  line-height:1.25; font-size:13px; font-family: Arial, sans-serif;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+}
 
   .rich-field.inline-name{ min-height:28px; height:28px; padding:4px 6px; }
   .rich-field.field-jc{ min-height:42px; height:42px; }
@@ -641,37 +642,87 @@ async function saveField(roomCode, field, value, box){
   }
 }
 
-// ===== ESCALADO DE CAPACIDAD Y LÍMITE DE SALTOS DE LÍNEA =====
+// ===== CONTROL DE DESBORDAMIENTO HORIZONTAL Y SALTO MANUAL DE LÍNEA =====
 const SIZE_PX = { small: 11, normal: 13, large: 14 };
 
-function sizeCost(sizeKey){
-  const px = SIZE_PX[sizeKey] || 13;
-  return (px / 13) * (px / 13);
+// Anchos y límites estimados por tipo de celda según Google Sheets (caracteres por línea)
+function getLineLimits(field, sizeKey) {
+  const isLarge = sizeKey === 'large';
+  const isSmall = sizeKey === 'small';
+
+  // Límites según el ancho de columna en Sheets
+  if (field === 'jc') {
+    return isLarge ? 22 : isSmall ? 32 : 26;
+  }
+  // Campos anchos (ap, pte, otros)
+  return isLarge ? 42 : isSmall ? 60 : 50;
 }
 
-function analyzeContent(div){
-  const { runs, text } = extractRuns(div);
-  let weighted = 0;
-  let maxFontSize = 'normal';
-
-  runs.forEach(r => { 
-    weighted += (r.end - r.start) * sizeCost(r.size);
-    if (r.size === 'large') maxFontSize = 'large';
-    else if (r.size === 'normal' && maxFontSize !== 'large') maxFontSize = 'normal';
-    else if (r.size === 'small' && maxFontSize === 'normal') maxFontSize = 'small';
-  });
-
-  const lineBreaks = (text.match(/\n/g) || []).length;
-
-  return { weighted, lineBreaks, maxFontSize };
-}
-
-function attachCapacity(div, field, box){
+function attachCapacity(div, field, box) {
   const limit = capacities[field] || 150;
   const counter = document.createElement('div');
   counter.className = 'char-counter';
   let lastValidHtml = div.innerHTML;
 
+  // Prevenir que el usuario escriba sin hacer salto de línea
+  div.addEventListener('keydown', (e) => {
+    // Permitir teclas de control (Borrar, Enter, Flechas, Tab, Ctrl+A, etc.)
+    if (['Backspace', 'Delete', 'Enter', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Tab'].includes(e.key) || e.ctrlKey || e.metaKey) {
+      return;
+    }
+
+    const { text } = extractRuns(div);
+    const sel = window.getSelection();
+    if (!sel.rangeCount) return;
+
+    // Calcular en qué línea actual está escribiendo el usuario
+    const range = sel.getRangeAt(0);
+    const textBeforeCursor = text.substring(0, range.startOffset);
+    const lines = text.split('\n');
+    const currentLineIndex = (textBeforeCursor.match(/\n/g) || []).length;
+    const currentLineText = lines[currentLineIndex] || '';
+
+    // Obtener el formato de la selección o texto actual
+    const { maxFontSize } = analyzeContent(div);
+    const maxCharsPerLine = getLineLimits(field, maxFontSize);
+
+    // Si la línea actual ya alcanzó el ancho físico de la celda de Sheets, detener escritura
+    if (currentLineText.length >= maxCharsPerLine) {
+      e.preventDefault(); // Detiene el tecleo
+    }
+  });
+
+  function updateCounter(analysis) {
+    const maxBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
+    counter.textContent = Math.round(analysis.weighted) + ' / ' + limit + ' | Lín: ' + (analysis.lineBreaks + 1) + '/' + (maxBreaks + 1);
+    counter.classList.toggle('over', analysis.weighted >= limit || analysis.lineBreaks > maxBreaks);
+  }
+
+  div.addEventListener('input', () => {
+    const analysis = analyzeContent(div);
+    const maxAllowedBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
+
+    if (analysis.weighted > limit || analysis.lineBreaks > maxAllowedBreaks) {
+      div.innerHTML = lastValidHtml;
+
+      const range = document.createRange();
+      range.selectNodeContents(div);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      updateCounter(analyzeContent(div));
+      return;
+    }
+
+    lastValidHtml = div.innerHTML;
+    updateCounter(analysis);
+  });
+
+  updateCounter(analyzeContent(div));
+  box.appendChild(counter);
+}
   function updateCounter(analysis){
     const maxBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
     counter.textContent = Math.round(analysis.weighted) + ' / ' + limit + ' | Lín: ' + (analysis.lineBreaks + 1) + '/' + (maxBreaks + 1);
