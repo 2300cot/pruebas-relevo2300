@@ -219,7 +219,6 @@
   <button type="button" class="size-btn" id="toolSizeMed" title="Tamaño mediano (13px)">A</button>
   <button type="button" class="size-btn" id="toolSizeLarge" title="Tamaño grande (14px)">A+</button>
 </div>
-
 <script>
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbza0FNhzPOG-1j2opInuos9AEzJC8GCxWLdx39pRgL2KUTKDAB4bJ2XX8upxcw4VvgyLA/exec';
 
@@ -262,6 +261,126 @@ let capacities = {
   otros: 160 
 };
 
+// ===== FUNCIONES AUXILIARES DE ANÁLISIS (DEBEN IR ARRIBA) =====
+const SIZE_PX = { small: 11, normal: 13, large: 14 };
+
+function sizeCost(sizeKey){
+  const px = SIZE_PX[sizeKey] || 13;
+  return (px / 13) * (px / 13);
+}
+
+function extractRuns(root){
+  let text = '';
+  const runs = [];
+
+  function walk(node, bold, size){
+    if(node.nodeType === Node.TEXT_NODE){
+      const start = text.length;
+      text += node.textContent;
+      const end = text.length;
+      if(end > start) runs.push({ start, end, bold, size });
+      return;
+    }
+    if(node.nodeType !== Node.ELEMENT_NODE) return;
+
+    const tag = node.tagName;
+    if(tag === 'BR'){
+      const start = text.length;
+      text += '\n';
+      runs.push({ start, end: text.length, bold, size });
+      return;
+    }
+
+    let nb = bold, ns = size;
+    if(tag === 'B' || tag === 'STRONG') nb = true;
+    if(node.style && (node.style.fontWeight === 'bold' || node.style.fontWeight === '700')) nb = true;
+    if(tag === 'FONT' && node.getAttribute('size')){
+      const n = parseInt(node.getAttribute('size'), 10);
+      if(n >= 4) ns = 'large';
+      else if(n <= 2) ns = 'small';
+      else ns = 'normal';
+    }
+
+    const isBlock = (tag === 'DIV' || tag === 'P') && node !== root;
+    if(isBlock && text.length > 0 && !text.endsWith('\n')){
+      const start = text.length;
+      text += '\n';
+      runs.push({ start, end: text.length, bold: false, size: 'normal' });
+    }
+
+    Array.from(node.childNodes).forEach(child => walk(child, nb, ns));
+  }
+
+  Array.from(root.childNodes).forEach(child => walk(child, false, 'normal'));
+
+  const merged = [];
+  runs.forEach(r => {
+    const last = merged[merged.length - 1];
+    if(last && last.bold === r.bold && last.size === r.size && last.end === r.start){
+      last.end = r.end;
+    } else {
+      merged.push({ ...r });
+    }
+  });
+  return { text, runs: merged };
+}
+
+function analyzeContent(div){
+  const { runs, text } = extractRuns(div);
+  let weighted = 0;
+  let maxFontSize = 'normal';
+
+  runs.forEach(r => { 
+    weighted += (r.end - r.start) * sizeCost(r.size);
+    if (r.size === 'large') maxFontSize = 'large';
+    else if (r.size === 'normal' && maxFontSize !== 'large') maxFontSize = 'normal';
+    else if (r.size === 'small' && maxFontSize === 'normal') maxFontSize = 'small';
+  });
+
+  const lineBreaks = (text.match(/\n/g) || []).length;
+
+  return { weighted, lineBreaks, maxFontSize };
+}
+
+function attachCapacity(div, field, box) {
+  const limit = capacities[field] || 150;
+  const counter = document.createElement('div');
+  counter.className = 'char-counter';
+  let lastValidHtml = div.innerHTML;
+
+  function updateCounter(analysis) {
+    const maxBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
+    counter.textContent = Math.round(analysis.weighted) + ' / ' + limit + ' | Lín: ' + (analysis.lineBreaks + 1) + '/' + (maxBreaks + 1);
+    counter.classList.toggle('over', analysis.weighted >= limit || analysis.lineBreaks > maxBreaks);
+  }
+
+  div.addEventListener('input', () => {
+    const analysis = analyzeContent(div);
+    const maxAllowedBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
+
+    if (analysis.weighted > limit || analysis.lineBreaks > maxAllowedBreaks) {
+      div.innerHTML = lastValidHtml;
+
+      const range = document.createRange();
+      range.selectNodeContents(div);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      updateCounter(analyzeContent(div));
+      return;
+    }
+
+    lastValidHtml = div.innerHTML;
+    updateCounter(analysis);
+  });
+
+  updateCounter(analyzeContent(div));
+  box.appendChild(counter);
+}
+
+// ===== AUTENTICACIÓN Y CARGA =====
 function getPin(){ return sessionStorage.getItem('relevoPin') || ''; }
 
 async function loadData(){
@@ -318,6 +437,7 @@ function setStatus(msg, cls){
   el.className = cls || '';
 }
 
+// ===== RENDERIZADO Y MAQUETACIÓN =====
 function render(){
   const main = document.getElementById('rooms');
   main.innerHTML = '';
@@ -612,6 +732,7 @@ function enforceDdMm(el){
   });
 }
 
+// ===== GUARDADO EN SEGUNDO PLANO =====
 function scheduleSave(roomCode, field, value, box){
   const key = roomCode + '|' + field;
   clearTimeout(saveTimers[key]);
@@ -639,125 +760,6 @@ async function saveField(roomCode, field, value, box){
   }catch(err){
     setStatus('Error al guardar: ' + err.message, 'err');
   }
-}
-
-// ===== ESCALADO DE CAPACIDAD Y CONTADOR GENERAL =====
-const SIZE_PX = { small: 11, normal: 13, large: 14 };
-
-function sizeCost(sizeKey){
-  const px = SIZE_PX[sizeKey] || 13;
-  return (px / 13) * (px / 13);
-}
-
-function analyzeContent(div){
-  const { runs, text } = extractRuns(div);
-  let weighted = 0;
-  let maxFontSize = 'normal';
-
-  runs.forEach(r => { 
-    weighted += (r.end - r.start) * sizeCost(r.size);
-    if (r.size === 'large') maxFontSize = 'large';
-    else if (r.size === 'normal' && maxFontSize !== 'large') maxFontSize = 'normal';
-    else if (r.size === 'small' && maxFontSize === 'normal') maxFontSize = 'small';
-  });
-
-  const lineBreaks = (text.match(/\n/g) || []).length;
-
-  return { weighted, lineBreaks, maxFontSize };
-}
-
-function attachCapacity(div, field, box) {
-  const limit = capacities[field] || 150;
-  const counter = document.createElement('div');
-  counter.className = 'char-counter';
-  let lastValidHtml = div.innerHTML;
-
-  function updateCounter(analysis) {
-    const maxBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
-    counter.textContent = Math.round(analysis.weighted) + ' / ' + limit + ' | Lín: ' + (analysis.lineBreaks + 1) + '/' + (maxBreaks + 1);
-    counter.classList.toggle('over', analysis.weighted >= limit || analysis.lineBreaks > maxBreaks);
-  }
-
-  div.addEventListener('input', () => {
-    const analysis = analyzeContent(div);
-    const maxAllowedBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
-
-    if (analysis.weighted > limit || analysis.lineBreaks > maxAllowedBreaks) {
-      div.innerHTML = lastValidHtml;
-
-      const range = document.createRange();
-      range.selectNodeContents(div);
-      range.collapse(false);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-
-      updateCounter(analyzeContent(div));
-      return;
-    }
-
-    lastValidHtml = div.innerHTML;
-    updateCounter(analysis);
-  });
-
-  updateCounter(analyzeContent(div));
-  box.appendChild(counter);
-}
-
-function extractRuns(root){
-  let text = '';
-  const runs = [];
-
-  function walk(node, bold, size){
-    if(node.nodeType === Node.TEXT_NODE){
-      const start = text.length;
-      text += node.textContent;
-      const end = text.length;
-      if(end > start) runs.push({ start, end, bold, size });
-      return;
-    }
-    if(node.nodeType !== Node.ELEMENT_NODE) return;
-
-    const tag = node.tagName;
-    if(tag === 'BR'){
-      const start = text.length;
-      text += '\n';
-      runs.push({ start, end: text.length, bold, size });
-      return;
-    }
-
-    let nb = bold, ns = size;
-    if(tag === 'B' || tag === 'STRONG') nb = true;
-    if(node.style && (node.style.fontWeight === 'bold' || node.style.fontWeight === '700')) nb = true;
-    if(tag === 'FONT' && node.getAttribute('size')){
-      const n = parseInt(node.getAttribute('size'), 10);
-      if(n >= 4) ns = 'large';
-      else if(n <= 2) ns = 'small';
-      else ns = 'normal';
-    }
-
-    const isBlock = (tag === 'DIV' || tag === 'P') && node !== root;
-    if(isBlock && text.length > 0 && !text.endsWith('\n')){
-      const start = text.length;
-      text += '\n';
-      runs.push({ start, end: text.length, bold: false, size: 'normal' });
-    }
-
-    Array.from(node.childNodes).forEach(child => walk(child, nb, ns));
-  }
-
-  Array.from(root.childNodes).forEach(child => walk(child, false, 'normal'));
-
-  const merged = [];
-  runs.forEach(r => {
-    const last = merged[merged.length - 1];
-    if(last && last.bold === r.bold && last.size === r.size && last.end === r.start){
-      last.end = r.end;
-    } else {
-      merged.push({ ...r });
-    }
-  });
-  return { text, runs: merged };
 }
 
 function scheduleSaveRich(div, box){
@@ -800,6 +802,96 @@ async function saveRichField(div, box){
     setStatus('Error al guardar: ' + err.message, 'err');
   }
 }
+
+// ===== BARRA FLOTANTE DE FORMATO =====
+const selToolbar = document.getElementById('selectionToolbar');
+const toolBold = document.getElementById('toolBold');
+const toolSizeSmall = document.getElementById('toolSizeSmall');
+const toolSizeMed = document.getElementById('toolSizeMed');
+const toolSizeLarge = document.getElementById('toolSizeLarge');
+let activeRichField = null;
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if(!sel || sel.isCollapsed){
+    selToolbar.classList.remove('show');
+    activeRichField = null;
+    return;
+  }
+  let anchor = sel.anchorNode;
+  if(anchor.nodeType === Node.TEXT_NODE) anchor = anchor.parentNode;
+  const richDiv = anchor.closest ? anchor.closest('.rich-field') : null;
+  if(!richDiv){
+    selToolbar.classList.remove('show');
+    activeRichField = null;
+    return;
+  }
+  activeRichField = richDiv;
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  if(rect.width === 0) return;
+  selToolbar.style.top = Math.max(10, rect.top - 45) + 'px';
+  selToolbar.style.left = Math.max(10, rect.left + (rect.width / 2) - 80) + 'px';
+  selToolbar.classList.add('show');
+});
+
+function applyFormat(command, value){
+  if(!activeRichField) return;
+  document.execCommand(command, false, value);
+  activeRichField.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+toolBold.addEventListener('mousedown', (e) => { e.preventDefault(); applyFormat('bold'); });
+toolSizeSmall.addEventListener('mousedown', (e) => { e.preventDefault(); applyFormat('fontSize', '1'); });
+toolSizeMed.addEventListener('mousedown', (e) => { e.preventDefault(); applyFormat('fontSize', '3'); });
+toolSizeLarge.addEventListener('mousedown', (e) => { e.preventDefault(); applyFormat('fontSize', '5'); });
+
+// ===== SELECCIÓN E IMPRESIÓN DESDE GOOGLE SHEETS =====
+document.getElementById('btnSelectAll').addEventListener('click', () => {
+  document.querySelectorAll('.printChk').forEach(c => c.checked = true);
+});
+document.getElementById('btnSelectNone').addEventListener('click', () => {
+  document.querySelectorAll('.printChk').forEach(c => c.checked = false);
+});
+document.querySelectorAll('.quick-range').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const from = parseInt(btn.dataset.from, 10);
+    const to = parseInt(btn.dataset.to, 10);
+    document.querySelectorAll('.room').forEach(roomEl => {
+      const num = parseInt(roomEl.dataset.roomL.replace(/[PV]$/,''), 10);
+      const chk = roomEl.querySelector('.printChk');
+      if(chk) chk.checked = (num >= from && num <= to);
+    });
+  });
+});
+
+document.getElementById('btnPrintSheets').addEventListener('click', async () => {
+  const selectedRooms = [];
+  document.querySelectorAll('.room').forEach(r => {
+    const chk = r.querySelector('.printChk');
+    if(chk && chk.checked){
+      selectedRooms.push(r.dataset.roomL.replace(/[PV]$/,''));
+    }
+  });
+  if(selectedRooms.length === 0){
+    alert('Selecciona al menos una habitación para imprimir.');
+    return;
+  }
+  setStatus('Generando PDF oficial desde Sheets…', 'saving');
+  try{
+    const res = await fetch(APPS_SCRIPT_URL + '?action=printUrls&rooms=' + encodeURIComponent(selectedRooms.join(',')) + '&pin=' + encodeURIComponent(getPin()));
+    const json = await res.json();
+    if(!json.ok) throw new Error(json.error || 'Error al obtener URLs');
+    json.urls.forEach(url => window.open(url, '_blank'));
+    setStatus('PDF listo ', 'ok');
+  }catch(err){
+    setStatus('Error al imprimir: ' + err.message, 'err');
+  }
+});
+
+// Inicialización
+if(getPin()){ loadData(); } else { showLock(); }
+</script>
 
 // ===== BARRA FLOTANTE DE FORMATO =====
 const selToolbar = document.getElementById('selectionToolbar');
