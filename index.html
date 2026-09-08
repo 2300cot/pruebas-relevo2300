@@ -16,7 +16,8 @@
     --fondo: #f6f8f9;
     --texto: #1a2733;
     --ok: #2f7d4f;
-    --sheets-cell-width: 390px;
+    /* Suma exacta de las 5 columnas: 78px + 32px + 32px + 224px + 100px = 466px */
+    --sheets-cell-width: 466px;
   }
   *{box-sizing:border-box;}
   body{
@@ -40,18 +41,17 @@
     border-bottom:1px solid var(--gris-borde); flex-wrap:wrap; align-items:center;
     position: sticky; top:56px; z-index:9;
   }
-  button{
+  button, select.btn-select{
     font: inherit; border:1px solid var(--gris-borde); background:#fff;
     padding:8px 12px; border-radius:8px; cursor:pointer; color:var(--texto);
   }
   button.primary{ background:var(--azul); color:#fff; border-color:var(--azul);}
-  button.ghost{ background:transparent; }
   #status{ font-size:.8rem; color:#647485; margin-left:auto;}
   #status.saving{color:#b4790f;}
   #status.ok{color:var(--ok);}
   #status.err{color:#b3261e;}
 
-  main{ padding: 10px 12px 60px; max-width: 850px; margin: 0 auto; }
+  main{ padding: 10px 12px 60px; max-width: 1000px; margin: 0 auto; }
 
   .room{
     background:#fff; border:1px solid var(--gris-borde); border-radius:12px;
@@ -61,7 +61,7 @@
     display:flex; align-items:center; gap:8px;
     padding:10px 12px; background:var(--azul-claro); border-bottom:1px solid var(--gris-borde);
   }
-  .room-head label{ display:flex; align-items:center; gap:6px; font-weight:700; font-size:.95rem;}
+  .room-head label{ display:flex; align-items:center; gap:6px; font-weight:700; font-size:.95rem; cursor:pointer;}
   
   .beds{ 
     display:flex; 
@@ -75,7 +75,7 @@
     box-sizing: border-box;
   }
   .bed + .bed{ border-left:1px solid var(--gris-borde); }
-  @media (max-width: 820px){ 
+  @media (max-width: 960px){ 
     .bed + .bed{ border-left:none; border-top:1px solid var(--gris-borde);} 
   }
 
@@ -86,7 +86,7 @@
   .bed-title .bed-number{ display:flex; align-items:center; gap:4px; white-space:nowrap; }
   .bed-title .header-nombre-box{ flex:1; margin:0 4px; }
   .bed-title .especialidad-select{
-    width:auto; max-width:100px; padding:4px 6px; font-size:.78rem;
+    width:auto; max-width:110px; padding:4px 6px; font-size:.78rem;
   }
   .bed-title .tag{
     font-size:.65rem; padding:2px 6px; border-radius:999px; color:#fff;
@@ -101,7 +101,6 @@
     font: inherit; font-size:.88rem; background:#fdfdfd;
   }
 
-  /* Ancho estricto 390px (RÉPLICA DE GOOGLE SHEETS) */
   .rich-field{
     width: 100%;
     white-space:pre-wrap; word-break:break-word; outline:none;
@@ -150,6 +149,17 @@
   }
   .lock-box button{ width:100%; }
   .lock-box .err{ color:#b3261e; font-size:.8rem; min-height:1.1em; margin-bottom:8px; }
+
+  /* Estilos para impresión */
+  @media print {
+    header, .toolbar, #lockScreen { display: none !important; }
+    body { background: #fff; }
+    main { padding: 0; max-width: 100%; }
+    .room { page-break-inside: avoid; border: 1px solid #000; margin: 10px 0; }
+    .room-head { background: #eee !important; color: #000; }
+    .room:has(.printChk:not(:checked)) { display: none !important; }
+    .printChk { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -174,8 +184,18 @@
 
 <div class="toolbar">
   <button class="primary" id="btnRefresh">↻ Actualizar</button>
-  <button id="btnSelectAll">Marcar todas</button>
-  <button id="btnSelectNone">Desmarcar todas</button>
+  
+  <!-- Selección por bloques -->
+  <select id="selectBlock" class="btn-select">
+    <option value="all">Marcar: Todas</option>
+    <option value="b1">Bloque 2301 - 2308</option>
+    <option value="b2">Bloque 2309 - 2316</option>
+    <option value="none">Desmarcar todas</option>
+  </select>
+
+  <!-- Botón de impresión a PDF -->
+  <button id="btnPrint">🖨️ Imprimir / PDF</button>
+
   <span id="status"></span>
 </div>
 
@@ -251,6 +271,25 @@ document.getElementById('btnUnlock').addEventListener('click', tryUnlock);
 document.getElementById('pinInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') tryUnlock(); });
 document.getElementById('btnRefresh').addEventListener('click', loadData);
 
+// Gestión de impresión y bloques
+document.getElementById('btnPrint').addEventListener('click', () => window.print());
+
+document.getElementById('selectBlock').addEventListener('change', (e) => {
+  const mode = e.target.value;
+  const roomElements = document.querySelectorAll('.room');
+
+  roomElements.forEach(el => {
+    const chk = el.querySelector('.printChk');
+    const roomNum = parseInt(el.dataset.roomNumber, 10);
+    if(!chk) return;
+
+    if(mode === 'all') chk.checked = true;
+    else if(mode === 'none') chk.checked = false;
+    else if(mode === 'b1') chk.checked = (roomNum >= 2301 && roomNum <= 2308);
+    else if(mode === 'b2') chk.checked = (roomNum >= 2309 && roomNum <= 2316);
+  });
+});
+
 function setStatus(msg, cls){
   const el = document.getElementById('status');
   el.textContent = msg;
@@ -270,11 +309,12 @@ function render(){
     const div = document.createElement('div');
     div.className = 'room';
     
-    const roomNumber = (room.roomL || '').replace(/[PV]$/,'');
+    const roomNumberStr = (room.roomL || '').replace(/[PV]$/,'');
+    div.dataset.roomNumber = roomNumberStr;
 
     const head = document.createElement('div');
     head.className = 'room-head';
-    head.innerHTML = `<label><input type="checkbox" class="printChk" checked> Hab. ${roomNumber}</label>`;
+    head.innerHTML = `<label><input type="checkbox" class="printChk" checked> Hab. ${roomNumberStr}</label>`;
     div.appendChild(head);
 
     const bedsWrap = document.createElement('div');
@@ -283,7 +323,6 @@ function render(){
     if(room.beds && Array.isArray(room.beds)){
       room.beds.forEach((bed, idx) => {
         const roomCode = idx === 0 ? room.roomL : (room.roomR || room.roomL);
-        // Si hay más de 1 cama en la habitación la consideramos doble
         const isDouble = room.beds.length > 1;
         const bedLetter = isDouble ? (idx === 0 ? 'P' : 'V') : '·';
         bedsWrap.appendChild(renderBed(roomCode, bedLetter, bed));
