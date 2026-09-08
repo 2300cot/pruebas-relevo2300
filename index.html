@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relevo Enfermería · Hab. 2301-2316</title>
-  <!-- Favicon para la pestaña del navegador -->
+<!-- Favicon para la pestaña del navegador -->
 <link rel="icon" type="image/x-icon" href="favicon.ico">
 
 <!-- Icono para marcadores y móviles -->
@@ -19,6 +19,8 @@
     --fondo: #f6f8f9;
     --texto: #1a2733;
     --ok: #2f7d4f;
+    /* 5 columnas de 78px en Sheets = 390px */
+    --sheets-cell-width: 390px;
   }
   *{box-sizing:border-box;}
   body{
@@ -32,9 +34,378 @@
     color:#fff;
     padding: 14px 16px;
     position: sticky; top:0; z-index: 10;
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    display:flex; align-items:center; justify-space-between; gap:10px;
     flex-wrap:wrap;
   }
+  header h1{ font-size:1.05rem; margin:0; font-weight:700; letter-spacing:.2px;}
+  header .sub{font-size:.75rem; opacity:.85;}
+  .toolbar{
+    display:flex; gap:8px; padding:10px 16px; background:#fff;
+    border-bottom:1px solid var(--gris-borde); flex-wrap:wrap; align-items:center;
+    position: sticky; top:56px; z-index:9;
+  }
+  button{
+    font: inherit; border:1px solid var(--gris-borde); background:#fff;
+    padding:8px 12px; border-radius:8px; cursor:pointer; color:var(--texto);
+  }
+  button.primary{ background:var(--azul); color:#fff; border-color:var(--azul);}
+  button.ghost{ background:transparent; }
+  #status{ font-size:.8rem; color:#647485; margin-left:auto;}
+  #status.saving{color:#b4790f;}
+  #status.ok{color:var(--ok);}
+  #status.err{color:#b3261e;}
+
+  main{ padding: 10px 12px 60px; max-width: 850px; margin: 0 auto; }
+
+  .room{
+    background:#fff; border:1px solid var(--gris-borde); border-radius:12px;
+    margin: 12px auto; overflow:hidden; width: fit-content; max-width: 100%;
+  }
+  .room-head{
+    display:flex; align-items:center; gap:8px;
+    padding:10px 12px; background:var(--azul-claro); border-bottom:1px solid var(--gris-borde);
+  }
+  .room-head label{ display:flex; align-items:center; gap:6px; font-weight:700; font-size:.95rem;}
+  
+  .beds{ 
+    display:flex; 
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  
+  /* CADA CAMA SE AJUSTA A LOS 390px EXACTOS DE SHEETS */
+  .bed{ 
+    padding:10px 12px; 
+    width: var(--sheets-cell-width);
+    box-sizing: border-box;
+  }
+  .bed + .bed{ border-left:1px solid var(--gris-borde); }
+  @media (max-width: 820px){ 
+    .bed + .bed{ border-left:none; border-top:1px solid var(--gris-borde);} 
+  }
+
+  .bed-title{
+    font-weight:700; font-size:.95rem; margin-bottom:8px;
+    display:flex; align-items:center; justify-content:space-between; gap:6px;
+  }
+  .bed-title .bed-number{ display:flex; align-items:center; gap:4px; white-space:nowrap; }
+  .bed-title .header-nombre-box{ flex:1; margin:0 4px; }
+  .bed-title .especialidad-select{
+    width:auto; max-width:100px; padding:4px 6px; font-size:.78rem;
+  }
+  .bed-title .especialidad-select.dirty{ border-color:#b4790f; }
+  .bed-title .especialidad-select.saved{ border-color:var(--ok); }
+  .bed-title .tag{
+    font-size:.65rem; padding:2px 6px; border-radius:999px; color:#fff;
+  }
+  .bed.P .tag{ background: var(--p-color); }
+  .bed.V .tag{ background: var(--v-color); }
+
+  .field{ margin-bottom:8px; width: 100%; }
+  .field label{ display:block; font-size:.68rem; text-transform:uppercase; letter-spacing:.03em; color:#647485; margin-bottom:2px;}
+  .field input, .field select, .rich-field{
+    width:100%; border:1px solid var(--gris-borde); border-radius:6px; padding:6px 8px;
+    font: inherit; font-size:.88rem; background:#fdfdfd;
+  }
+
+  /* ===== DIMENSIONADO EXACTO RÉPLICA GOOGLE SHEETS (5 col x 78px = 390px) ===== */
+  .rich-field{
+    width: 100%; /* Toma los 390px (menos el padding interno) de la celda padre */
+    white-space:pre-wrap; word-break:break-word; outline:none;
+    line-height:1.25; font-size:13px; font-family: Arial, sans-serif;
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+  }
+
+  .rich-field.inline-name{ min-height:28px; height:28px; padding:4px 6px; }
+  .rich-field.field-jc{ min-height:42px; height:42px; }
+  .rich-field.field-ap{ min-height:75px; height:75px; }
+  .rich-field.field-pte{ min-height:75px; height:75px; }
+  .rich-field.field-otros{ min-height:75px; height:75px; }
+
+  .rich-field:focus{ border-color: var(--azul); background:#fff; }
+  .rich-field font[size="5"]{ font-size:14px; }
+  .rich-field font[size="3"]{ font-size:13px; }
+  .rich-field font[size="1"]{ font-size:11px; }
+
+  .char-counter{
+    font-size:.65rem; color:#8a97a3; text-align:right; margin-top:2px;
+  }
+  .char-counter.over{ color:#b3261e; font-weight:700; }
+  .row2{ display:grid; grid-template-columns: auto 1fr; gap:8px; }
+  .row3{ display:grid; grid-template-columns: 1fr 1fr 1.2fr; gap:6px; }
+
+  .field.dirty input, .field.dirty select, .field.dirty .rich-field{
+    border-color:#b4790f; background:#fff8ec;
+  }
+  .field.saved input, .field.saved select, .field.saved .rich-field{
+    border-color: var(--ok);
+  }
+
+  /* ===== ALINEACIÓN HORIZONTAL SV / CD ===== */
+  .sv-row{ display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:8px; width:100%; }
+  .sv-group-sv{ display:flex; flex-direction:row; align-items:center; gap:4px; }
+  .sv-group-cd{ display:flex; flex-direction:row; align-items:center; }
+  .sv-check{
+    display:flex; align-items:center; justify-content:center; gap:3px; font-size:.75rem; color:#647485;
+    white-space:nowrap; cursor:pointer;
+  }
+  .sv-check input[type="checkbox"]{
+    width:16px; height:16px; margin:0; accent-color: var(--azul); cursor:pointer;
+  }
+  .date-input{ width:58px !important; flex:none !important; text-align:center; padding:3px !important; font-size:.8rem !important; }
+  .alergia-select{ width:auto; min-width:0; padding-left:4px; padding-right:4px; }
+  .alergia-detalle{ font-weight:700; }
+
+  /* ===== BARRA FLOTANTE DE FORMATO ===== */
+  #selectionToolbar{
+    position:fixed; z-index:150; display:none;
+    background:var(--texto); border-radius:8px; padding:5px;
+    box-shadow:0 6px 18px rgba(0,0,0,.3);
+    gap:4px;
+  }
+  #selectionToolbar.show{ display:flex; }
+  #selectionToolbar button{
+    background:transparent; border:none; color:#fff;
+    padding:6px 10px; border-radius:5px; font-weight:700; font-size:.85rem;
+    cursor:pointer;
+  }
+  #selectionToolbar button:active, #selectionToolbar button.active{ background:rgba(255,255,255,.25); }
+  #toolSizeSmall{ font-size:11px; }
+  #toolSizeMed{ font-size:13px; }
+  #toolSizeLarge{ font-size:14px; }
+
+  /* ===== PANTALLA DE PIN ===== */
+  #lockScreen{
+    position:fixed; inset:0; background:var(--azul);
+    display:flex; align-items:center; justify-content:center; z-index:100;
+    padding:20px;
+  }
+  #lockScreen.hidden{ display:none; }
+  .lock-box{
+    background:#fff; border-radius:14px; padding:28px 24px; max-width:320px; width:100%;
+    text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  .lock-box h2{ margin:0 0 4px; font-size:1.1rem; color:var(--texto); }
+  .lock-box p{ margin:0 0 16px; font-size:.82rem; color:#647485; }
+  .lock-box input{
+    width:100%; text-align:center; font-size:1.4rem; letter-spacing:.3em;
+    padding:10px; border:1px solid var(--gris-borde); border-radius:8px; margin-bottom:10px;
+  }
+  .lock-box button{ width:100%; }
+  .lock-box .err{ color:#b3261e; font-size:.8rem; min-height:1.1em; margin-bottom:8px; }
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <div class="lock-box">
+    <h2>Acceso restringido</h2>
+    <p>Introduce el PIN de la unidad para ver el relevo</p>
+    <div class="err" id="lockErr"></div>
+    <input type="password" inputmode="numeric" id="pinInput" maxlength="12" autocomplete="off">
+    <button class="primary" id="btnUnlock">Entrar</button>
+  </div>
+</div>
+
+<header>
+  <div>
+    <h1>Relevo Enfermería</h1>
+    <div class="sub">Habitaciones 2301–2316</div>
+  </div>
+  <div class="sub" id="lastSync">Sin datos aún</div>
+</header>
+
+<div class="toolbar">
+  <button class="primary" id="btnRefresh">↻ Actualizar</button>
+  <button id="btnSelectAll">Marcar todas</button>
+  <button id="btnSelectNone">Desmarcar todas</button>
+  <button class="ghost quick-range" data-from="2301" data-to="2305">2301–2305</button>
+  <button class="ghost quick-range" data-from="2306" data-to="2310">2306–2310</button>
+  <button class="ghost quick-range" data-from="2311" data-to="2316">2311–2316</button>
+  <button class="primary" id="btnPrintSheets">Imprimir PDF</button>
+  <span id="status"></span>
+</div>
+
+<main id="rooms">
+  <p style="text-align:center;color:#8a97a3;">Cargando habitaciones…</p>
+</main>
+
+<div id="selectionToolbar">
+  <button type="button" id="toolBold" title="Negrita">N</button>
+  <button type="button" class="size-btn" id="toolSizeSmall" title="Tamaño pequeño (11px)">A−</button>
+  <button type="button" class="size-btn" id="toolSizeMed" title="Tamaño mediano (13px)">A</button>
+  <button type="button" class="size-btn" id="toolSizeLarge" title="Tamaño grande (14px)">A+</button>
+</div>
+
+<script>
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJsyd14emBOG8wTNHps1mtsi2bVqwXid85h_h3xvC9-7rSnRlXrLjiaqUC0mm7uog/exec';
+
+const FIELD_LABELS = {
+  nombre: 'Nombre (edad)',
+  especialidad: 'Especialidad',
+  jc: 'Juicio clínico',
+  ap: 'Antecedentes personales',
+  alergiaSiNo: 'Alergias',
+  alergiaDetalle: 'Detalle alergia',
+  viaTipo: 'Vía (tipo)',
+  viaFecha: 'Vía (fecha)',
+  svFechaExtra: 'SV (fecha)',
+  pte: 'Pendiente',
+  otros: 'Otros'
+};
+
+const RICHTEXT_FIELDS = ['nombre', 'jc', 'ap', 'pte', 'otros'];
+const ESPECIALIDADES = ['', 'COT', 'CIR', 'MI', 'URO', 'NEU', 'DIG', 'CAR', 'OFT', 'DER', 'ORL', 'NEFR'];
+
+const ESPECIALIDAD_COLORS = {
+  COT: '#d6ebff', CIR: '#ffd6ec', MI: '#ffe9c7', URO: '#fff9d6',
+  NEU: '#d6ffe9', DIG: '#e6d6ff', CAR: '#ffd6d6', OFT: '#d6fff5',
+  DER: '#f0d6ff', ORL: '#e3ffd6', NEFR: '#ffe0d6'
+};
+
+const VIA_TIPOS = ['', 'VVP', 'VVC', 'VO', 'PICC', 'Reservorio'];
+const VIA_COLORS = {
+  VVP: '#d6ffe0', VVC: '#d6ebff', VO: '#e6e6e6', PICC: '#ffe4c7', RESERVORIO: '#ffd6d6'
+};
+
+let roomsData = [];
+let saveTimers = {};
+
+let capacities = { 
+  nombre: 45,
+  jc: 85,
+  ap: 160, 
+  pte: 160, 
+  otros: 160 
+};
+
+function getPin(){ return sessionStorage.getItem('relevoPin') || ''; }
+
+async function loadData(){
+  setStatus('Cargando…', '');
+  try{
+    const res = await fetch(APPS_SCRIPT_URL + '?action=read&pin=' + encodeURIComponent(getPin()));
+    const json = await res.json();
+    if(!json.ok){
+      if(json.error === 'PIN incorrecto'){
+        sessionStorage.removeItem('relevoPin');
+        showLock('PIN incorrecto. Inténtalo de nuevo.');
+        return false;
+      }
+      throw new Error(json.error || 'Error desconocido');
+    }
+    roomsData = json.data;
+    if(json.capacities) capacities = Object.assign(capacities, json.capacities);
+    render();
+    setStatus('Actualizado', 'ok');
+    document.getElementById('lastSync').textContent = 'Última actualización: ' + new Date().toLocaleTimeString('es-ES');
+    return true;
+  }catch(err){
+    setStatus('Error al cargar: ' + err.message, 'err');
+    return false;
+  }
+}
+
+function showLock(errMsg){
+  document.getElementById('lockScreen').classList.remove('hidden');
+  document.getElementById('lockErr').textContent = errMsg || '';
+  const input = document.getElementById('pinInput');
+  input.value = '';
+  setTimeout(() => input.focus(), 50);
+}
+
+function hideLock(){ document.getElementById('lockScreen').classList.add('hidden'); }
+
+async function tryUnlock(){
+  const pin = document.getElementById('pinInput').value.trim();
+  if(!pin){ return; }
+  sessionStorage.setItem('relevoPin', pin);
+  document.getElementById('lockErr').textContent = '';
+  const success = await loadData();
+  if(success) hideLock();
+}
+
+document.getElementById('btnUnlock').addEventListener('click', tryUnlock);
+document.getElementById('pinInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') tryUnlock(); });
+document.getElementById('btnRefresh').addEventListener('click', loadData);
+
+function setStatus(msg, cls){
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = cls || '';
+}
+
+function render(){
+  const main = document.getElementById('rooms');
+  main.innerHTML = '';
+  roomsData.forEach(room => {
+    const div = document.createElement('div');
+    div.className = 'room';
+    div.dataset.roomL = room.roomL;
+
+    const head = document.createElement('div');
+    head.className = 'room-head';
+    head.innerHTML = `<label><input type="checkbox" class="printChk" checked> Hab. ${room.roomL.replace(/[PV]$/,'')}</label>`;
+    div.appendChild(head);
+
+    const bedsWrap = document.createElement('div');
+    bedsWrap.className = 'beds';
+    room.beds.forEach((bed, idx) => {
+      const roomCode = idx === 0 ? room.roomL : room.roomR;
+      const bedLetter = room.double ? (idx === 0 ? 'P' : 'V') : '·';
+      bedsWrap.appendChild(renderBed(roomCode, bedLetter, bed));
+    });
+    div.appendChild(bedsWrap);
+    main.appendChild(div);
+  });
+}
+
+function renderBed(roomCode, bedLetter, bed){
+  const wrap = document.createElement('div');
+  wrap.className = 'bed ' + (bedLetter === 'P' ? 'P' : bedLetter === 'V' ? 'V' : '');
+  
+  // Renderizado dinámico de los campos de la cama
+  wrap.innerHTML = `
+    <div class="bed-title">
+      <div class="bed-number">
+        <span>Hab. ${roomCode.replace(/[PV]$/,'')}</span>
+        ${bedLetter !== '·' ? `<span class="tag">${bedLetter}</span>` : ''}
+      </div>
+      <div class="header-nombre-box">
+        <div class="rich-field inline-name" contenteditable="true" data-field="nombre" data-room="${roomCode}">${bed.nombre || ''}</div>
+      </div>
+      <select class="especialidad-select" data-field="especialidad" data-room="${roomCode}">
+        ${ESPECIALIDADES.map(e => `<option value="${e}" ${bed.especialidad === e ? 'selected' : ''}>${e || 'Esp...'}</option>`).join('')}
+      </select>
+    </div>
+
+    <div class="field">
+      <label>${FIELD_LABELS.jc}</label>
+      <div class="rich-field field-jc" contenteditable="true" data-field="jc" data-room="${roomCode}">${bed.jc || ''}</div>
+    </div>
+
+    <div class="field">
+      <label>${FIELD_LABELS.ap}</label>
+      <div class="rich-field field-ap" contenteditable="true" data-field="ap" data-room="${roomCode}">${bed.ap || ''}</div>
+    </div>
+
+    <div class="field">
+      <label>${FIELD_LABELS.pte}</label>
+      <div class="rich-field field-pte" contenteditable="true" data-field="pte" data-room="${roomCode}">${bed.pte || ''}</div>
+    </div>
+
+    <div class="field">
+      <label>${FIELD_LABELS.otros}</label>
+      <div class="rich-field field-otros" contenteditable="true" data-field="otros" data-room="${roomCode}">${bed.otros || ''}</div>
+    </div>
+  `;
+
+  return wrap;
+}
+</script>
+</body>
+</html>  }
   header h1{ font-size:1.05rem; margin:0; font-weight:700; letter-spacing:.2px;}
   header .sub{font-size:.75rem; opacity:.85;}
   .toolbar{
