@@ -90,38 +90,25 @@
   }
 
   /* ===== DIMENSIONADO EXACTO RÉPLICA GOOGLE SHEETS ===== */
-  .rich-field{
-    white-space: pre; /* Fuerza a no romper la línea automáticamente */
-    overflow-x: hidden; /* Oculta lo que se pase del ancho hasta pulsar Enter */
-    outline:none;
-    line-height:1.25; font-size:13px; font-family: Arial, sans-serif;
-    box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
-  }
+  /* ===== ANCHOS Y FORMATO RÉPLICA DE SHEETS (5 COLUMNAS = 390px) ===== */
+.rich-field{
+  white-space: pre-wrap;
+  word-break: break-word;
+  outline:none;
+  line-height:1.25; font-size:13px; font-family: Arial, sans-serif;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+  box-sizing: border-box;
+}
 
-  .rich-field.inline-name{ min-height:28px; height:28px; padding:4px 6px; }
-  .rich-field.field-jc{ min-height:42px; height:42px; }
-  .rich-field.field-ap{ min-height:75px; height:75px; }
-  .rich-field.field-pte{ min-height:75px; height:75px; }
-  .rich-field.field-otros{ min-height:75px; height:75px; }
+.rich-field.inline-name{ min-height:28px; height:28px; padding:4px 6px; }
 
-  .rich-field:focus{ border-color: var(--azul); background:#fff; }
-  .rich-field font[size="5"]{ font-size:14px; }
-  .rich-field font[size="3"]{ font-size:13px; }
-  .rich-field font[size="1"]{ font-size:11px; }
+/* Juicio Clínico (JC): 390px de ancho */
+.rich-field.field-jc{ min-height:42px; height:42px; max-width: 390px; }
 
-  .char-counter{
-    font-size:.65rem; color:#8a97a3; text-align:right; margin-top:2px;
-  }
-  .char-counter.over{ color:#b3261e; font-weight:700; }
-  .row2{ display:grid; grid-template-columns: auto 1fr; gap:8px; }
-  .row3{ display:grid; grid-template-columns: 1fr 1fr 1.2fr; gap:6px; }
-
-  .field.dirty input, .field.dirty select, .field.dirty .rich-field{
-    border-color:#b4790f; background:#fff8ec;
-  }
-  .field.saved input, .field.saved select, .field.saved .rich-field{
-    border-color: var(--ok);
-  }
+/* Campos anchos (AP, PTE, OTROS): 390px de ancho */
+.rich-field.field-ap, 
+.rich-field.field-pte, 
+.rich-field.field-otros{ min-height:75px; height:75px; max-width: 390px; }
 
   /* ===== ALINEACIÓN HORIZONTAL SV / CD ===== */
   .sv-row{ display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:8px; width:100%; }
