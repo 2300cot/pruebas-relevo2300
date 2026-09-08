@@ -4,7 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relevo Enfermería · Hab. 2301-2316</title>
+  <!-- Favicon para la pestaña del navegador -->
 <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+<!-- Icono para marcadores y móviles -->
 <link rel="apple-touch-icon" href="imagen.png">
 <style>
   :root{
@@ -16,8 +19,6 @@
     --fondo: #f6f8f9;
     --texto: #1a2733;
     --ok: #2f7d4f;
-    /* Suma exacta de las 5 columnas: 78px + 32px + 32px + 224px + 100px = 466px */
-    --sheets-cell-width: 466px;
   }
   *{box-sizing:border-box;}
   body{
@@ -41,43 +42,33 @@
     border-bottom:1px solid var(--gris-borde); flex-wrap:wrap; align-items:center;
     position: sticky; top:56px; z-index:9;
   }
-  button, select.btn-select{
+  button{
     font: inherit; border:1px solid var(--gris-borde); background:#fff;
     padding:8px 12px; border-radius:8px; cursor:pointer; color:var(--texto);
   }
   button.primary{ background:var(--azul); color:#fff; border-color:var(--azul);}
+  button.ghost{ background:transparent; }
   #status{ font-size:.8rem; color:#647485; margin-left:auto;}
   #status.saving{color:#b4790f;}
   #status.ok{color:var(--ok);}
   #status.err{color:#b3261e;}
 
-  main{ padding: 10px 12px 60px; max-width: 1000px; margin: 0 auto; }
+  main{ padding: 10px 12px 60px; max-width: 1100px; margin: 0 auto; }
 
   .room{
     background:#fff; border:1px solid var(--gris-borde); border-radius:12px;
-    margin: 12px auto; overflow:hidden; width: fit-content; max-width: 100%;
+    margin: 12px 0; overflow:hidden;
   }
   .room-head{
     display:flex; align-items:center; gap:8px;
     padding:10px 12px; background:var(--azul-claro); border-bottom:1px solid var(--gris-borde);
   }
-  .room-head label{ display:flex; align-items:center; gap:6px; font-weight:700; font-size:.95rem; cursor:pointer;}
-  
-  .beds{ 
-    display:flex; 
-    flex-wrap:wrap;
-    justify-content:center;
-  }
-  
-  .bed{ 
-    padding:10px 12px; 
-    width: var(--sheets-cell-width);
-    box-sizing: border-box;
-  }
+  .room-head label{ display:flex; align-items:center; gap:6px; font-weight:700; font-size:.95rem;}
+  .beds{ display:grid; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 560px){ .beds{ grid-template-columns: 1fr; } }
+  .bed{ padding:10px 12px; }
   .bed + .bed{ border-left:1px solid var(--gris-borde); }
-  @media (max-width: 960px){ 
-    .bed + .bed{ border-left:none; border-top:1px solid var(--gris-borde);} 
-  }
+  @media (max-width:560px){ .bed + .bed{ border-left:none; border-top:1px solid var(--gris-borde);} }
 
   .bed-title{
     font-weight:700; font-size:.95rem; margin-bottom:8px;
@@ -86,27 +77,37 @@
   .bed-title .bed-number{ display:flex; align-items:center; gap:4px; white-space:nowrap; }
   .bed-title .header-nombre-box{ flex:1; margin:0 4px; }
   .bed-title .especialidad-select{
-    width:auto; max-width:110px; padding:4px 6px; font-size:.78rem;
+    width:auto; max-width:100px; padding:4px 6px; font-size:.78rem;
   }
+  .bed-title .especialidad-select.dirty{ border-color:#b4790f; }
+  .bed-title .especialidad-select.saved{ border-color:var(--ok); }
   .bed-title .tag{
     font-size:.65rem; padding:2px 6px; border-radius:999px; color:#fff;
   }
   .bed.P .tag{ background: var(--p-color); }
   .bed.V .tag{ background: var(--v-color); }
 
-  .field{ margin-bottom:8px; width: 100%; }
+  .field{ margin-bottom:8px; }
   .field label{ display:block; font-size:.68rem; text-transform:uppercase; letter-spacing:.03em; color:#647485; margin-bottom:2px;}
   .field input, .field select, .rich-field{
     width:100%; border:1px solid var(--gris-borde); border-radius:6px; padding:6px 8px;
     font: inherit; font-size:.88rem; background:#fdfdfd;
   }
 
+  /* ===== DIMENSIONADO EXACTO RÉPLICA GOOGLE SHEETS ===== */
   .rich-field{
-    width: 100%;
     white-space:pre-wrap; word-break:break-word; outline:none;
     line-height:1.25; font-size:13px; font-family: Arial, sans-serif;
     overflow: hidden;
     box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+  }
+
+  /* Ancho real de la celda fusionada en Sheets: 78+32+32+224+100 = 466px */
+  .rich-field.field-jc,
+  .rich-field.field-ap,
+  .rich-field.field-pte,
+  .rich-field.field-otros{
+    width:466px; max-width:466px;
   }
 
   .rich-field.inline-name{ min-height:28px; height:28px; padding:4px 6px; }
@@ -116,11 +117,28 @@
   .rich-field.field-otros{ min-height:75px; height:75px; }
 
   .rich-field:focus{ border-color: var(--azul); background:#fff; }
+  .rich-field font[size="5"]{ font-size:14px; }
+  .rich-field font[size="3"]{ font-size:13px; }
+  .rich-field font[size="1"]{ font-size:11px; }
 
-  .row2{ display:grid; grid-template-columns: 1fr 1fr; gap:8px; }
-  
-  .sv-row{ display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:8px; width:100%; margin-top: 4px; }
-  .sv-group{ display:flex; flex-direction:row; align-items:center; gap:4px; }
+  .char-counter{
+    font-size:.65rem; color:#8a97a3; text-align:right; margin-top:2px;
+  }
+  .char-counter.over{ color:#b3261e; font-weight:700; }
+  .row2{ display:grid; grid-template-columns: auto 1fr; gap:8px; }
+  .row3{ display:grid; grid-template-columns: 1fr 1fr 1.2fr; gap:6px; }
+
+  .field.dirty input, .field.dirty select, .field.dirty .rich-field{
+    border-color:#b4790f; background:#fff8ec;
+  }
+  .field.saved input, .field.saved select, .field.saved .rich-field{
+    border-color: var(--ok);
+  }
+
+  /* ===== ALINEACIÓN HORIZONTAL SV / CD ===== */
+  .sv-row{ display:flex; flex-direction:row; align-items:center; justify-content:space-around; gap:8px; width:100%; }
+  .sv-group-sv{ display:flex; flex-direction:row; align-items:center; gap:4px; }
+  .sv-group-cd{ display:flex; flex-direction:row; align-items:center; }
   .sv-check{
     display:flex; align-items:center; justify-content:center; gap:3px; font-size:.75rem; color:#647485;
     white-space:nowrap; cursor:pointer;
@@ -128,9 +146,29 @@
   .sv-check input[type="checkbox"]{
     width:16px; height:16px; margin:0; accent-color: var(--azul); cursor:pointer;
   }
-  .date-input{ width:70px !important; text-align:center; padding:3px !important; font-size:.8rem !important; }
+  .date-input{ width:58px !important; flex:none !important; text-align:center; padding:3px !important; font-size:.8rem !important; }
+  .alergia-select{ width:auto; min-width:0; padding-left:4px; padding-right:4px; }
+  .alergia-detalle{ font-weight:700; }
 
-  /* Pantalla PIN */
+  /* ===== BARRA FLOTANTE DE FORMATO ===== */
+  #selectionToolbar{
+    position:fixed; z-index:150; display:none;
+    background:var(--texto); border-radius:8px; padding:5px;
+    box-shadow:0 6px 18px rgba(0,0,0,.3);
+    gap:4px;
+  }
+  #selectionToolbar.show{ display:flex; }
+  #selectionToolbar button{
+    background:transparent; border:none; color:#fff;
+    padding:6px 10px; border-radius:5px; font-weight:700; font-size:.85rem;
+    cursor:pointer;
+  }
+  #selectionToolbar button:active, #selectionToolbar button.active{ background:rgba(255,255,255,.25); }
+  #toolSizeSmall{ font-size:11px; }
+  #toolSizeMed{ font-size:13px; }
+  #toolSizeLarge{ font-size:14px; }
+
+  /* ===== PANTALLA DE PIN ===== */
   #lockScreen{
     position:fixed; inset:0; background:var(--azul);
     display:flex; align-items:center; justify-content:center; z-index:100;
@@ -149,17 +187,6 @@
   }
   .lock-box button{ width:100%; }
   .lock-box .err{ color:#b3261e; font-size:.8rem; min-height:1.1em; margin-bottom:8px; }
-
-  /* Estilos para impresión */
-  @media print {
-    header, .toolbar, #lockScreen { display: none !important; }
-    body { background: #fff; }
-    main { padding: 0; max-width: 100%; }
-    .room { page-break-inside: avoid; border: 1px solid #000; margin: 10px 0; }
-    .room-head { background: #eee !important; color: #000; }
-    .room:has(.printChk:not(:checked)) { display: none !important; }
-    .printChk { display: none; }
-  }
 </style>
 </head>
 <body>
@@ -184,18 +211,12 @@
 
 <div class="toolbar">
   <button class="primary" id="btnRefresh">↻ Actualizar</button>
-  
-  <!-- Selección por bloques -->
-  <select id="selectBlock" class="btn-select">
-    <option value="all">Marcar: Todas</option>
-    <option value="b1">Bloque 2301 - 2308</option>
-    <option value="b2">Bloque 2309 - 2316</option>
-    <option value="none">Desmarcar todas</option>
-  </select>
-
-  <!-- Botón de impresión a PDF -->
-  <button id="btnPrint">🖨️ Imprimir / PDF</button>
-
+  <button id="btnSelectAll">Marcar todas</button>
+  <button id="btnSelectNone">Desmarcar todas</button>
+  <button class="ghost quick-range" data-from="2301" data-to="2305">2301–2305</button>
+  <button class="ghost quick-range" data-from="2306" data-to="2310">2306–2310</button>
+  <button class="ghost quick-range" data-from="2311" data-to="2316">2311–2316</button>
+  <button class="primary" id="btnPrintSheets">Imprimir PDF</button>
   <span id="status"></span>
 </div>
 
@@ -203,47 +224,78 @@
   <p style="text-align:center;color:#8a97a3;">Cargando habitaciones…</p>
 </main>
 
+<div id="selectionToolbar">
+  <button type="button" id="toolBold" title="Negrita">N</button>
+  <button type="button" class="size-btn" id="toolSizeSmall" title="Tamaño pequeño (11px)">A−</button>
+  <button type="button" class="size-btn" id="toolSizeMed" title="Tamaño mediano (13px)">A</button>
+  <button type="button" class="size-btn" id="toolSizeLarge" title="Tamaño grande (14px)">A+</button>
+</div>
+
 <script>
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJsyd14emBOG8wTNHps1mtsi2bVqwXid85h_h3xvC9-7rSnRlXrLjiaqUC0mm7uog/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxnvokK8bkwsp5u92QbDIQOc827CZOF9IXj06vIsyeQcdp2Nskwx2gzVi06dJxWu_xG/exec';
 
 const FIELD_LABELS = {
   nombre: 'Nombre (edad)',
   especialidad: 'Especialidad',
   jc: 'Juicio clínico',
   ap: 'Antecedentes personales',
+  alergiaSiNo: 'Alergias',
+  alergiaDetalle: 'Detalle alergia',
+  viaTipo: 'Vía (tipo)',
+  viaFecha: 'Vía (fecha)',
+  svFechaExtra: 'SV (fecha)',
   pte: 'Pendiente',
   otros: 'Otros'
 };
 
+const RICHTEXT_FIELDS = ['nombre', 'jc', 'ap', 'pte', 'otros'];
 const ESPECIALIDADES = ['', 'COT', 'CIR', 'MI', 'URO', 'NEU', 'DIG', 'CAR', 'OFT', 'DER', 'ORL', 'NEFR'];
+
+const ESPECIALIDAD_COLORS = {
+  COT: '#d6ebff', CIR: '#ffd6ec', MI: '#ffe9c7', URO: '#fff9d6',
+  NEU: '#d6ffe9', DIG: '#e6d6ff', CAR: '#ffd6d6', OFT: '#d6fff5',
+  DER: '#f0d6ff', ORL: '#e3ffd6', NEFR: '#ffe0d6'
+};
+
 const VIA_TIPOS = ['', 'VVP', 'VVC', 'VO', 'PICC', 'Reservorio'];
+const VIA_COLORS = {
+  VVP: '#d6ffe0', VVC: '#d6ebff', VO: '#e6e6e6', PICC: '#ffe4c7', RESERVORIO: '#ffd6d6'
+};
 
 let roomsData = [];
+let saveTimers = {};
+
+let capacities = { 
+  nombre: 45,
+  jc: 85,
+  ap: 160, 
+  pte: 160, 
+  otros: 160 
+};
 
 function getPin(){ return sessionStorage.getItem('relevoPin') || ''; }
 
 async function loadData(){
   setStatus('Cargando…', '');
   try{
-    const response = await fetch(APPS_SCRIPT_URL + '?action=read&pin=' + encodeURIComponent(getPin()));
-    const json = await response.json();
-
+    const res = await fetch(APPS_SCRIPT_URL + '?action=read&pin=' + encodeURIComponent(getPin()));
+    const json = await res.json();
     if(!json.ok){
       if(json.error === 'PIN incorrecto'){
         sessionStorage.removeItem('relevoPin');
         showLock('PIN incorrecto. Inténtalo de nuevo.');
         return false;
       }
-      throw new Error(json.error || 'Error desconocido al leer datos');
+      throw new Error(json.error || 'Error desconocido');
     }
-
-    roomsData = json.data || [];
+    roomsData = json.data;
+    if(json.capacities) capacities = Object.assign(capacities, json.capacities);
     render();
     setStatus('Actualizado', 'ok');
     document.getElementById('lastSync').textContent = 'Última actualización: ' + new Date().toLocaleTimeString('es-ES');
     return true;
   }catch(err){
-    setStatus('Error: ' + err.message, 'err');
+    setStatus('Error al cargar: ' + err.message, 'err');
     return false;
   }
 }
@@ -271,25 +323,6 @@ document.getElementById('btnUnlock').addEventListener('click', tryUnlock);
 document.getElementById('pinInput').addEventListener('keydown', (e) => { if(e.key === 'Enter') tryUnlock(); });
 document.getElementById('btnRefresh').addEventListener('click', loadData);
 
-// Gestión de impresión y bloques
-document.getElementById('btnPrint').addEventListener('click', () => window.print());
-
-document.getElementById('selectBlock').addEventListener('change', (e) => {
-  const mode = e.target.value;
-  const roomElements = document.querySelectorAll('.room');
-
-  roomElements.forEach(el => {
-    const chk = el.querySelector('.printChk');
-    const roomNum = parseInt(el.dataset.roomNumber, 10);
-    if(!chk) return;
-
-    if(mode === 'all') chk.checked = true;
-    else if(mode === 'none') chk.checked = false;
-    else if(mode === 'b1') chk.checked = (roomNum >= 2301 && roomNum <= 2308);
-    else if(mode === 'b2') chk.checked = (roomNum >= 2309 && roomNum <= 2316);
-  });
-});
-
 function setStatus(msg, cls){
   const el = document.getElementById('status');
   el.textContent = msg;
@@ -299,131 +332,573 @@ function setStatus(msg, cls){
 function render(){
   const main = document.getElementById('rooms');
   main.innerHTML = '';
-
-  if(!roomsData || roomsData.length === 0){
-    main.innerHTML = '<p style="text-align:center;color:#8a97a3;">No hay habitaciones disponibles.</p>';
-    return;
-  }
-
   roomsData.forEach(room => {
     const div = document.createElement('div');
     div.className = 'room';
-    
-    const roomNumberStr = (room.roomL || '').replace(/[PV]$/,'');
-    div.dataset.roomNumber = roomNumberStr;
+    div.dataset.roomL = room.roomL;
 
     const head = document.createElement('div');
     head.className = 'room-head';
-    head.innerHTML = `<label><input type="checkbox" class="printChk" checked> Hab. ${roomNumberStr}</label>`;
+    head.innerHTML = `<label><input type="checkbox" class="printChk" checked> Hab. ${room.roomL.replace(/[PV]$/,'')}</label>`;
     div.appendChild(head);
 
     const bedsWrap = document.createElement('div');
     bedsWrap.className = 'beds';
-    
-    if(room.beds && Array.isArray(room.beds)){
-      room.beds.forEach((bed, idx) => {
-        const roomCode = idx === 0 ? room.roomL : (room.roomR || room.roomL);
-        const isDouble = room.beds.length > 1;
-        const bedLetter = isDouble ? (idx === 0 ? 'P' : 'V') : '·';
-        bedsWrap.appendChild(renderBed(roomCode, bedLetter, bed));
-      });
-    }
+    room.beds.forEach((bed, idx) => {
+      const roomCode = idx === 0 ? room.roomL : room.roomR;
+      const bedLetter = room.double ? (idx === 0 ? 'P' : 'V') : '·';
+      bedsWrap.appendChild(renderBed(roomCode, bedLetter, bed));
+    });
     div.appendChild(bedsWrap);
     main.appendChild(div);
   });
 }
 
 function renderBed(roomCode, bedLetter, bed){
-  bed = bed || {};
   const wrap = document.createElement('div');
   wrap.className = 'bed ' + (bedLetter === 'P' ? 'P' : bedLetter === 'V' ? 'V' : '');
-  
-  wrap.innerHTML = `
-    <div class="bed-title">
-      <div class="bed-number">
-        <span>Hab. ${(roomCode || '').replace(/[PV]$/,'')}</span>
-        ${bedLetter !== '·' ? `<span class="tag">${bedLetter}</span>` : ''}
-      </div>
-      <div class="header-nombre-box">
-        <div class="rich-field inline-name" contenteditable="true" data-field="nombre" data-room="${roomCode}">${bed.nombre || ''}</div>
-      </div>
-      <select class="especialidad-select" data-field="especialidad" data-room="${roomCode}">
-        ${ESPECIALIDADES.map(e => `<option value="${e}" ${bed.especialidad === e ? 'selected' : ''}>${e || 'Esp...'}</option>`).join('')}
-      </select>
-    </div>
 
-    <div class="field">
-      <label>${FIELD_LABELS.jc}</label>
-      <div class="rich-field field-jc" contenteditable="true" data-field="jc" data-room="${roomCode}">${bed.jc || ''}</div>
-    </div>
+  const title = document.createElement('div');
+  title.className = 'bed-title';
 
-    <div class="field">
-      <label>${FIELD_LABELS.ap}</label>
-      <div class="rich-field field-ap" contenteditable="true" data-field="ap" data-room="${roomCode}">${bed.ap || ''}</div>
-    </div>
+  const numSpan = document.createElement('span');
+  numSpan.className = 'bed-number';
+  numSpan.innerHTML = bedLetter !== '·' ? `${roomCode.replace(/[PV]$/,'')} <span class="tag">${bedLetter}</span>` : roomCode;
+  title.appendChild(numSpan);
 
-    <div class="row2">
-      <div class="field">
-        <label>Alergia</label>
-        <select data-field="alergiaSiNo" data-room="${roomCode}">
-          <option value="NO" ${bed.alergiaSiNo === 'NO' ? 'selected' : ''}>NO</option>
-          <option value="SI" ${bed.alergiaSiNo === 'SI' ? 'selected' : ''}>SÍ</option>
-        </select>
-      </div>
-      <div class="field">
-        <label>Detalle Alergia</label>
-        <input type="text" data-field="alergiaDetalle" data-room="${roomCode}" value="${bed.alergiaDetalle || ''}">
-      </div>
-    </div>
+  const nombreBox = makeField(roomCode, 'nombre', bed.nombre, bed.nombreHtml, false, false, true);
+  nombreBox.classList.add('header-nombre-box');
+  title.appendChild(nombreBox);
 
-    <div class="row2">
-      <div class="field">
-        <label>Vía</label>
-        <select data-field="viaTipo" data-room="${roomCode}">
-          ${VIA_TIPOS.map(v => `<option value="${v}" ${bed.viaTipo === v ? 'selected' : ''}>${v || 'Ninguna'}</option>`).join('')}
-        </select>
-      </div>
-      <div class="field">
-        <label>Fecha Vía</label>
-        <input type="text" class="date-input" data-field="viaFecha" data-room="${roomCode}" value="${bed.viaFecha || ''}" placeholder="dd/mm">
-      </div>
-    </div>
+  title.appendChild(makeEspecialidadSelect(roomCode, bed.especialidad));
+  wrap.appendChild(title);
 
-    <div class="field">
-      <label>Constantes / Cuidados</label>
-      <div class="sv-row">
-        <div class="sv-group">
-          <label class="sv-check"><input type="checkbox" data-field="svP" data-room="${roomCode}" ${bed.svP ? 'checked' : ''}> SV-P</label>
-          <label class="sv-check"><input type="checkbox" data-field="svM" data-room="${roomCode}" ${bed.svM ? 'checked' : ''}> SV-M</label>
-          <label class="sv-check"><input type="checkbox" data-field="svN" data-room="${roomCode}" ${bed.svN ? 'checked' : ''}> SV-N</label>
-        </div>
-        <div class="sv-group">
-          <label class="sv-check"><input type="checkbox" data-field="cd" data-room="${roomCode}" ${bed.cd ? 'checked' : ''}> CD</label>
-        </div>
-      </div>
-    </div>
+  wrap.appendChild(makeField(roomCode, 'jc', bed.jc, bed.jcHtml));
+  wrap.appendChild(makeField(roomCode, 'ap', bed.ap, bed.apHtml));
 
-    <div class="field">
-      <label>${FIELD_LABELS.pte}</label>
-      <div class="rich-field field-pte" contenteditable="true" data-field="pte" data-room="${roomCode}">${bed.pte || ''}</div>
-    </div>
+  wrap.appendChild(makeAlergiaRow(roomCode, bed.alergiaSiNo, bed.alergiaDetalle));
 
-    <div class="field">
-      <label>${FIELD_LABELS.otros}</label>
-      <div class="rich-field field-otros" contenteditable="true" data-field="otros" data-room="${roomCode}">${bed.otros || ''}</div>
-    </div>
-  `;
+  const row3 = document.createElement('div');
+  row3.className = 'row3';
+  row3.appendChild(makeField(roomCode, 'viaTipo', bed.viaTipo));
+  row3.appendChild(makeField(roomCode, 'viaFecha', bed.viaFecha));
+  row3.appendChild(makeSvField(roomCode, bed.svFechaExtra, bed.svCheck));
+  wrap.appendChild(row3);
+
+  wrap.appendChild(makeField(roomCode, 'pte', bed.pte, bed.pteHtml));
+  wrap.appendChild(makeField(roomCode, 'otros', bed.otros, bed.otrosHtml));
 
   return wrap;
 }
 
-// Inicialización
-if(getPin()){
-  hideLock();
-  loadData();
-} else {
-  showLock();
+function parseSvValue(raw){
+  raw = (raw || '').toString().trim();
+  if(/^control\s*de\s*diuresis$/i.test(raw) || /^control\s*de\s*diur[eé]sis$/i.test(raw)) return { fecha: '', tipo: '', cd: true };
+  const m = raw.match(/^(.*?)\s*\(([^)]*)\)\s*$/);
+  if(m) return { fecha: m[1].trim(), tipo: m[2].trim(), cd: false };
+  return { fecha: raw, tipo: '', cd: false };
 }
+
+function composeSvValue(fecha, tipo){
+  fecha = (fecha || '').trim();
+  return !fecha ? '' : (tipo ? `${fecha} (${tipo})` : fecha);
+}
+
+function makeSvField(roomCode, rawValue, checkValue){
+  const box = document.createElement('div');
+  box.className = 'field';
+  const label = document.createElement('label');
+  label.textContent = FIELD_LABELS.svFechaExtra;
+  box.appendChild(label);
+
+  const { fecha, tipo, cd } = parseSvValue(rawValue);
+  const row = document.createElement('div');
+  row.className = 'sv-row';
+
+  const groupSv = document.createElement('div');
+  groupSv.className = 'sv-group-sv';
+
+  const svLabel = document.createElement('label');
+  svLabel.className = 'sv-check';
+  const svCheckbox = document.createElement('input');
+  svCheckbox.type = 'checkbox';
+  svCheckbox.checked = !!checkValue;
+  svLabel.appendChild(svCheckbox);
+  svLabel.appendChild(document.createTextNode('SV'));
+
+  const dateInput = document.createElement('input');
+  dateInput.type = 'text';
+  dateInput.value = fecha;
+  enforceDdMm(dateInput);
+
+  groupSv.appendChild(svLabel);
+  groupSv.appendChild(dateInput);
+
+  const groupCd = document.createElement('div');
+  groupCd.className = 'sv-group-cd';
+
+  const cdLabel = document.createElement('label');
+  cdLabel.className = 'sv-check';
+  const cdCheckbox = document.createElement('input');
+  cdCheckbox.type = 'checkbox';
+  cdCheckbox.checked = cd;
+  cdLabel.appendChild(cdCheckbox);
+  cdLabel.appendChild(document.createTextNode('CD'));
+
+  groupCd.appendChild(cdLabel);
+
+  function trigger(){
+    box.classList.add('dirty'); box.classList.remove('saved');
+    scheduleSave(roomCode, 'svCheck', svCheckbox.checked, box);
+    const valor = cdCheckbox.checked ? 'Control de diuresis' : composeSvValue(dateInput.value, svCheckbox.checked ? 'Implantación' : 'Extracción');
+    scheduleSave(roomCode, 'svFechaExtra', valor, box);
+  }
+  dateInput.addEventListener('input', trigger);
+  svCheckbox.addEventListener('change', trigger);
+  cdCheckbox.addEventListener('change', trigger);
+
+  row.appendChild(groupSv); 
+  row.appendChild(groupCd);
+  box.appendChild(row);
+  return box;
+}
+
+function makeField(roomCode, field, value, htmlValue, isRich, grow, isInlineName){
+  const box = document.createElement('div');
+  box.className = 'field';
+  const label = document.createElement('label');
+  label.textContent = FIELD_LABELS[field];
+  box.appendChild(label);
+
+  if(RICHTEXT_FIELDS.includes(field)){
+    const div = document.createElement('div');
+    div.className = 'rich-field field-' + field + (isInlineName ? ' inline-name' : '');
+    div.contentEditable = 'true';
+    div.dataset.room = roomCode;
+    div.dataset.field = field;
+    if(htmlValue){ div.innerHTML = htmlValue; } else { div.textContent = value || ''; }
+
+    div.addEventListener('input', () => {
+      box.classList.add('dirty'); box.classList.remove('saved');
+      scheduleSaveRich(div, box);
+    });
+
+    if(isInlineName || field === 'jc'){
+      div.addEventListener('keydown', (e) => { if(e.key === 'Enter') e.preventDefault(); });
+    }
+
+    box.appendChild(div);
+    attachCapacity(div, field, box);
+    return box;
+  }
+
+  let input;
+  if(field === 'especialidad'){
+    input = makeEspecialidadSelect(roomCode, value);
+    box.appendChild(input);
+    return box;
+  } else if(field === 'viaTipo'){
+    input = document.createElement('select');
+    input.className = 'via-select';
+    VIA_TIPOS.forEach(opt => {
+      const o = document.createElement('option');
+      o.value = opt; o.textContent = opt || '—';
+      if(String(value).toUpperCase() === opt.toUpperCase()) o.selected = true;
+      input.appendChild(o);
+    });
+    applyViaColor(input);
+  } else if(field === 'viaFecha'){
+    input = document.createElement('input');
+    input.type = 'text'; input.value = value || '';
+    enforceDdMm(input);
+  } else {
+    input = document.createElement('input');
+    input.type = 'text'; input.value = value || '';
+  }
+
+  input.addEventListener('input', () => {
+    box.classList.add('dirty'); box.classList.remove('saved');
+    scheduleSave(roomCode, field, input.value, box);
+  });
+  if(input.tagName === 'SELECT'){
+    input.addEventListener('change', () => {
+      box.classList.add('dirty'); box.classList.remove('saved');
+      scheduleSave(roomCode, field, input.value, box);
+      if(field === 'viaTipo') applyViaColor(input);
+    });
+  }
+
+  box.appendChild(input);
+  return box;
+}
+
+function makeAlergiaRow(roomCode, siNoValue, detalleValue){
+  const row = document.createElement('div');
+  row.className = 'row2';
+
+  const boxSiNo = document.createElement('div');
+  boxSiNo.className = 'field';
+  const labelSiNo = document.createElement('label');
+  labelSiNo.textContent = FIELD_LABELS.alergiaSiNo;
+  boxSiNo.appendChild(labelSiNo);
+  const selectSiNo = document.createElement('select');
+  selectSiNo.className = 'alergia-select';
+  ['NO', 'SI'].forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    if(String(siNoValue).toUpperCase() === opt) o.selected = true;
+    selectSiNo.appendChild(o);
+  });
+  boxSiNo.appendChild(selectSiNo);
+
+  const boxDetalle = document.createElement('div');
+  boxDetalle.className = 'field';
+  const labelDetalle = document.createElement('label');
+  labelDetalle.textContent = FIELD_LABELS.alergiaDetalle;
+  boxDetalle.appendChild(labelDetalle);
+  const inputDetalle = document.createElement('input');
+  inputDetalle.type = 'text'; inputDetalle.value = detalleValue || '';
+  inputDetalle.className = 'alergia-detalle';
+  boxDetalle.appendChild(inputDetalle);
+
+  function syncColor(){
+    const isSi = selectSiNo.value.toUpperCase() === 'SI';
+    const color = isSi ? '#fff6c9' : '';
+    selectSiNo.style.backgroundColor = color;
+    inputDetalle.style.backgroundColor = color;
+  }
+  syncColor();
+
+  selectSiNo.addEventListener('change', () => {
+    boxSiNo.classList.add('dirty'); boxSiNo.classList.remove('saved');
+    scheduleSave(roomCode, 'alergiaSiNo', selectSiNo.value, boxSiNo);
+    syncColor();
+  });
+  inputDetalle.addEventListener('input', () => {
+    boxDetalle.classList.add('dirty'); boxDetalle.classList.remove('saved');
+    scheduleSave(roomCode, 'alergiaDetalle', inputDetalle.value, boxDetalle);
+  });
+
+  row.appendChild(boxSiNo); row.appendChild(boxDetalle);
+  return row;
+}
+
+function makeEspecialidadSelect(roomCode, value){
+  const select = document.createElement('select');
+  select.className = 'especialidad-select';
+  ESPECIALIDADES.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt || '—';
+    if(String(value).toUpperCase() === opt.toUpperCase()) o.selected = true;
+    select.appendChild(o);
+  });
+  applyEspecialidadColor(select);
+  select.addEventListener('change', () => {
+    applyEspecialidadColor(select);
+    select.classList.add('dirty'); select.classList.remove('saved');
+    scheduleSave(roomCode, 'especialidad', select.value, select);
+  });
+  return select;
+}
+
+function applyEspecialidadColor(select){
+  const color = ESPECIALIDAD_COLORS[select.value.toUpperCase()];
+  select.style.backgroundColor = color || '';
+  select.style.fontWeight = color ? '700' : '';
+}
+
+function applyViaColor(select){
+  const color = VIA_COLORS[select.value.toUpperCase()];
+  select.style.backgroundColor = color || '';
+}
+
+function enforceDdMm(el){
+  el.classList.add('date-input');
+  el.setAttribute('maxlength', '5');
+  el.setAttribute('placeholder', 'dd/mm');
+  el.setAttribute('inputmode', 'numeric');
+  el.addEventListener('input', () => {
+    const digits = el.value.replace(/\D/g, '').slice(0, 4);
+    el.value = digits.length > 2 ? digits.slice(0, 2) + '/' + digits.slice(2) : digits;
+  });
+}
+
+function scheduleSave(roomCode, field, value, box){
+  const key = roomCode + '|' + field;
+  clearTimeout(saveTimers[key]);
+  saveTimers[key] = setTimeout(() => saveField(roomCode, field, value, box), 700);
+}
+
+async function saveField(roomCode, field, value, box){
+  setStatus('Guardando…', 'saving');
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'write', room: roomCode, field, value, pin: getPin() })
+    });
+    const json = await res.json();
+    if(!json.ok){
+      if(json.error === 'PIN incorrecto'){
+        sessionStorage.removeItem('relevoPin');
+        showLock('Tu sesión ha caducado. Vuelve a introducir el PIN.');
+      }
+      throw new Error(json.error || 'Error al guardar');
+    }
+    box.classList.remove('dirty'); box.classList.add('saved');
+    setStatus('Guardado ✓', 'ok');
+  }catch(err){
+    setStatus('Error al guardar: ' + err.message, 'err');
+  }
+}
+
+// ===== ESCALADO DE CAPACIDAD Y LÍMITE DE SALTOS DE LÍNEA =====
+const SIZE_PX = { small: 11, normal: 13, large: 14 };
+
+function sizeCost(sizeKey){
+  const px = SIZE_PX[sizeKey] || 13;
+  return (px / 13) * (px / 13);
+}
+
+function analyzeContent(div){
+  const { runs, text } = extractRuns(div);
+  let weighted = 0;
+  let maxFontSize = 'normal';
+
+  runs.forEach(r => { 
+    weighted += (r.end - r.start) * sizeCost(r.size);
+    if (r.size === 'large') maxFontSize = 'large';
+    else if (r.size === 'normal' && maxFontSize !== 'large') maxFontSize = 'normal';
+    else if (r.size === 'small' && maxFontSize === 'normal') maxFontSize = 'small';
+  });
+
+  const lineBreaks = (text.match(/\n/g) || []).length;
+
+  return { weighted, lineBreaks, maxFontSize };
+}
+
+function attachCapacity(div, field, box){
+  const limit = capacities[field] || 150;
+  const counter = document.createElement('div');
+  counter.className = 'char-counter';
+  let lastValidHtml = div.innerHTML;
+
+  function updateCounter(analysis){
+    const maxBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
+    counter.textContent = Math.round(analysis.weighted) + ' / ' + limit + ' | Lín: ' + (analysis.lineBreaks + 1) + '/' + (maxBreaks + 1);
+    counter.classList.toggle('over', analysis.weighted >= limit || analysis.lineBreaks > maxBreaks);
+  }
+
+  div.addEventListener('input', () => {
+    const analysis = analyzeContent(div);
+    const maxAllowedBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
+
+    if(analysis.weighted > limit || analysis.lineBreaks > maxAllowedBreaks){
+      div.innerHTML = lastValidHtml;
+      
+      const range = document.createRange();
+      range.selectNodeContents(div);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      updateCounter(analyzeContent(div));
+      return;
+    }
+
+    lastValidHtml = div.innerHTML;
+    updateCounter(analysis);
+  });
+
+  updateCounter(analyzeContent(div));
+  box.appendChild(counter);
+}
+
+function extractRuns(root){
+  let text = '';
+  const runs = [];
+
+  function walk(node, bold, size){
+    if(node.nodeType === Node.TEXT_NODE){
+      const start = text.length;
+      text += node.textContent;
+      const end = text.length;
+      if(end > start) runs.push({ start, end, bold, size });
+      return;
+    }
+    if(node.nodeType !== Node.ELEMENT_NODE) return;
+
+    const tag = node.tagName;
+    if(tag === 'BR'){
+      const start = text.length;
+      text += '\n';
+      runs.push({ start, end: text.length, bold, size });
+      return;
+    }
+
+    let nb = bold, ns = size;
+    if(tag === 'B' || tag === 'STRONG') nb = true;
+    if(node.style && (node.style.fontWeight === 'bold' || node.style.fontWeight === '700')) nb = true;
+    if(tag === 'FONT' && node.getAttribute('size')){
+      const n = parseInt(node.getAttribute('size'), 10);
+      if(n >= 4) ns = 'large';
+      else if(n <= 2) ns = 'small';
+      else ns = 'normal';
+    }
+
+    const isBlock = (tag === 'DIV' || tag === 'P') && node !== root;
+    if(isBlock && text.length > 0 && !text.endsWith('\n')){
+      const start = text.length;
+      text += '\n';
+      runs.push({ start, end: text.length, bold: false, size: 'normal' });
+    }
+
+    Array.from(node.childNodes).forEach(child => walk(child, nb, ns));
+  }
+
+  Array.from(root.childNodes).forEach(child => walk(child, false, 'normal'));
+
+  const merged = [];
+  runs.forEach(r => {
+    const last = merged[merged.length - 1];
+    if(last && last.bold === r.bold && last.size === r.size && last.end === r.start){
+      last.end = r.end;
+    } else {
+      merged.push({ ...r });
+    }
+  });
+  return { text, runs: merged };
+}
+
+function scheduleSaveRich(div, box){
+  const key = div.dataset.room + '|' + div.dataset.field;
+  clearTimeout(saveTimers[key]);
+  saveTimers[key] = setTimeout(() => saveRichField(div, box), 700);
+}
+
+async function saveRichField(div, box){
+  const { text, runs } = extractRuns(div);
+  const payload = {
+    action: 'writeRich',
+    room: div.dataset.room,
+    field: div.dataset.field,
+    text,
+    runs: runs.map(r => ({
+      start: r.start, end: r.end, bold: r.bold,
+      size: r.size === 'large' ? 14 : r.size === 'small' ? 11 : null
+    })),
+    pin: getPin()
+  };
+  setStatus('Guardando…', 'saving');
+  try{
+    const res = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'text/plain;charset=utf-8'},
+      body: JSON.stringify(payload)
+    });
+    const json = await res.json();
+    if(!json.ok){
+      if(json.error === 'PIN incorrecto'){
+        sessionStorage.removeItem('relevoPin');
+        showLock('Tu sesión ha caducado. Vuelve a introducir el PIN.');
+      }
+      throw new Error(json.error || 'Error al guardar');
+    }
+    if(box){ box.classList.remove('dirty'); box.classList.add('saved'); }
+    setStatus('Guardado ✓', 'ok');
+  }catch(err){
+    setStatus('Error al guardar: ' + err.message, 'err');
+  }
+}
+
+// ===== BARRA FLOTANTE DE FORMATO =====
+const selToolbar = document.getElementById('selectionToolbar');
+const toolBold = document.getElementById('toolBold');
+const toolSizeSmall = document.getElementById('toolSizeSmall');
+const toolSizeMed = document.getElementById('toolSizeMed');
+const toolSizeLarge = document.getElementById('toolSizeLarge');
+let activeRichField = null;
+
+document.addEventListener('selectionchange', () => {
+  const sel = window.getSelection();
+  if(!sel || sel.isCollapsed){
+    selToolbar.classList.remove('show');
+    activeRichField = null;
+    return;
+  }
+  let anchor = sel.anchorNode;
+  if(anchor.nodeType === Node.TEXT_NODE) anchor = anchor.parentNode;
+  const richDiv = anchor.closest ? anchor.closest('.rich-field') : null;
+  if(!richDiv){
+    selToolbar.classList.remove('show');
+    activeRichField = null;
+    return;
+  }
+  activeRichField = richDiv;
+  const range = sel.getRangeAt(0);
+  const rect = range.getBoundingClientRect();
+  if(rect.width === 0) return;
+  selToolbar.style.top = Math.max(10, rect.top - 45) + 'px';
+  selToolbar.style.left = Math.max(10, rect.left + (rect.width / 2) - 80) + 'px';
+  selToolbar.classList.add('show');
+});
+
+function applyFormat(command, value){
+  if(!activeRichField) return;
+  document.execCommand(command, false, value);
+  activeRichField.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+toolBold.addEventListener('mousedown', (e) => { e.preventDefault(); applyFormat('bold'); });
+toolSizeSmall.addEventListener('mousedown', (e) => { e.preventDefault(); applyFormat('fontSize', '1'); });
+toolSizeMed.addEventListener('mousedown', (e) => { e.preventDefault(); applyFormat('fontSize', '3'); });
+toolSizeLarge.addEventListener('mousedown', (e) => { e.preventDefault(); applyFormat('fontSize', '5'); });
+
+// ===== SELECCIÓN E IMPRESIÓN DESDE GOOGLE SHEETS =====
+document.getElementById('btnSelectAll').addEventListener('click', () => {
+  document.querySelectorAll('.printChk').forEach(c => c.checked = true);
+});
+document.getElementById('btnSelectNone').addEventListener('click', () => {
+  document.querySelectorAll('.printChk').forEach(c => c.checked = false);
+});
+document.querySelectorAll('.quick-range').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const from = parseInt(btn.dataset.from, 10);
+    const to = parseInt(btn.dataset.to, 10);
+    document.querySelectorAll('.room').forEach(roomEl => {
+      const num = parseInt(roomEl.dataset.roomL.replace(/[PV]$/,''), 10);
+      const chk = roomEl.querySelector('.printChk');
+      if(chk) chk.checked = (num >= from && num <= to);
+    });
+  });
+});
+
+document.getElementById('btnPrintSheets').addEventListener('click', async () => {
+  const selectedRooms = [];
+  document.querySelectorAll('.room').forEach(r => {
+    const chk = r.querySelector('.printChk');
+    if(chk && chk.checked){
+      selectedRooms.push(r.dataset.roomL.replace(/[PV]$/,''));
+    }
+  });
+  if(selectedRooms.length === 0){
+    alert('Selecciona al menos una habitación para imprimir.');
+    return;
+  }
+  setStatus('Generando PDF oficial desde Sheets…', 'saving');
+  try{
+    const res = await fetch(APPS_SCRIPT_URL + '?action=printUrls&rooms=' + encodeURIComponent(selectedRooms.join(',')) + '&pin=' + encodeURIComponent(getPin()));
+    const json = await res.json();
+    if(!json.ok) throw new Error(json.error || 'Error al obtener URLs');
+    json.urls.forEach(url => window.open(url, '_blank'));
+    setStatus('PDF listo ✓', 'ok');
+  }catch(err){
+    setStatus('Error al imprimir: ' + err.message, 'err');
+  }
+});
+
+if(getPin()){ loadData(); } else { showLock(); }
 </script>
 </body>
 </html>
