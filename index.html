@@ -687,7 +687,17 @@ function maxBreaksFor(field, maxFontSize){
   return lines - 1;
 }
 
+// Pendiente y Otros ya no usan un cálculo de caracteres estimado: se
+// comprueba directamente si el contenido real desborda la caja (con la
+// propia medición del navegador) y se bloquea la edición justo ahí.
+const OVERFLOW_FIELDS = ['pte', 'otros'];
+
 function attachCapacity(div, field, box){
+  if(OVERFLOW_FIELDS.includes(field)){
+    attachOverflowGuard(div, box);
+    return;
+  }
+
   const limit = capacities[field] || 150;
   const counter = document.createElement('div');
   counter.className = 'char-counter';
@@ -722,6 +732,47 @@ function attachCapacity(div, field, box){
   });
 
   updateCounter(analyzeContent(div));
+  box.appendChild(counter);
+}
+
+function attachOverflowGuard(div, box){
+  const counter = document.createElement('div');
+  counter.className = 'char-counter';
+  let lastValidHtml = div.innerHTML;
+
+  function fits(){
+    return div.scrollHeight <= div.clientHeight + 1; // +1px de margen por redondeo
+  }
+
+  function updateCounter(){
+    if(fits()){
+      counter.textContent = '';
+      counter.classList.remove('over');
+    } else {
+      counter.textContent = 'Límite de espacio alcanzado';
+      counter.classList.add('over');
+    }
+  }
+
+  div.addEventListener('input', () => {
+    if(!fits()){
+      div.innerHTML = lastValidHtml;
+
+      const range = document.createRange();
+      range.selectNodeContents(div);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+
+      updateCounter();
+      return;
+    }
+    lastValidHtml = div.innerHTML;
+    updateCounter();
+  });
+
+  updateCounter();
   box.appendChild(counter);
 }
 
