@@ -107,12 +107,12 @@
   .rich-field.field-ap,
   .rich-field.field-pte,
   .rich-field.field-otros{
-    width:455px; max-width:455px; padding:4px 5px;
+    width:440px; max-width:440px; padding:4px 5px;
   }
 
   .rich-field.inline-name{ min-height:28px; height:28px; padding:4px 6px; }
   .rich-field.field-jc{ min-height:42px; height:42px; }
-  .rich-field.field-ap{ min-height:75px; height:75px; }
+  .rich-field.field-ap{ min-height:42px; height:42px; }
   .rich-field.field-pte{ min-height:75px; height:75px; }
   .rich-field.field-otros{ min-height:75px; height:75px; }
 
@@ -268,7 +268,7 @@ let saveTimers = {};
 let capacities = { 
   nombre: 45,
   jc: 120,
-  ap: 185, 
+  ap: 120, 
   pte: 185, 
   otros: 185 
 };
@@ -660,6 +660,10 @@ function sizeCost(sizeKey){
   return (px / 13) * (px / 13);
 }
 
+// Líneas base permitidas por campo (con letra normal/grande). Con letra
+// pequeña se permite una línea más, ya que cada línea ocupa menos alto.
+const FIELD_BASE_LINES = { ap: 2, pte: 4, otros: 4, jc: 2, nombre: 1 };
+
 function analyzeContent(div){
   const { runs, text } = extractRuns(div);
   let weighted = 0;
@@ -677,6 +681,12 @@ function analyzeContent(div){
   return { weighted, lineBreaks, maxFontSize };
 }
 
+function maxBreaksFor(field, maxFontSize){
+  const baseLines = FIELD_BASE_LINES[field] || 3;
+  const lines = maxFontSize === 'small' ? baseLines + 1 : baseLines;
+  return lines - 1;
+}
+
 function attachCapacity(div, field, box){
   const limit = capacities[field] || 150;
   const counter = document.createElement('div');
@@ -684,14 +694,14 @@ function attachCapacity(div, field, box){
   let lastValidHtml = div.innerHTML;
 
   function updateCounter(analysis){
-    const maxBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
+    const maxBreaks = maxBreaksFor(field, analysis.maxFontSize);
     counter.textContent = Math.round(analysis.weighted) + ' / ' + limit + ' | Lín: ' + (analysis.lineBreaks + 1) + '/' + (maxBreaks + 1);
     counter.classList.toggle('over', analysis.weighted >= limit || analysis.lineBreaks > maxBreaks);
   }
 
   div.addEventListener('input', () => {
     const analysis = analyzeContent(div);
-    const maxAllowedBreaks = analysis.maxFontSize === 'small' ? 4 : 3;
+    const maxAllowedBreaks = maxBreaksFor(field, analysis.maxFontSize);
 
     if(analysis.weighted > limit || analysis.lineBreaks > maxAllowedBreaks){
       div.innerHTML = lastValidHtml;
