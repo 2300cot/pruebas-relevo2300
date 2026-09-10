@@ -111,7 +111,7 @@
   }
 
   .rich-field.inline-name{ min-height:28px; height:28px; padding:4px 6px; }
-  .rich-field.field-jc{ min-height:42px; height:42px; }
+  .rich-field.field-jc{ min-height:25px; height:25px; }
   .rich-field.field-ap{ min-height:42px; height:42px; }
   .rich-field.field-pte{ min-height:75px; height:75px; }
   .rich-field.field-otros{ min-height:75px; height:75px; }
@@ -690,7 +690,7 @@ function maxBreaksFor(field, maxFontSize){
 // Pendiente y Otros ya no usan un cálculo de caracteres estimado: se
 // comprueba directamente si el contenido real desborda la caja (con la
 // propia medición del navegador) y se bloquea la edición justo ahí.
-const OVERFLOW_FIELDS = ['pte', 'otros'];
+const OVERFLOW_FIELDS = ['jc', 'ap', 'pte', 'otros'];
 
 function attachCapacity(div, field, box){
   if(OVERFLOW_FIELDS.includes(field)){
