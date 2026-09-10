@@ -94,35 +94,37 @@
     font: inherit; font-size:.88rem; background:#fdfdfd;
   }
 
-  /* ===== DIMENSIONADO EXACTO RÉPLICA GOOGLE SHEETS ===== */
+  /* ===== DIMENSIONADO ESCALADO x1.35 (mantiene la misma proporción que
+     Sheets — mismos saltos de línea, mismo texto que cabe — pero se ve
+     más grande en pantalla para facilitar la edición) ===== */
   .rich-field{
     white-space:pre-wrap; word-break:break-word; outline:none;
-    line-height:1.25; font-size:13px; font-family: Arial, sans-serif;
+    line-height:1.25; font-size:18px; font-family: Arial, sans-serif;
     overflow: hidden;
     box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
   }
 
-  /* Ancho real de la celda fusionada en Sheets: 78+32+32+224+100 = 466px */
+  /* Ancho real de la celda de Sheets (78+32+32+224+100=466px) × 1.35 */
   .rich-field.field-jc,
   .rich-field.field-ap,
   .rich-field.field-pte,
   .rich-field.field-otros{
-    width:355px; max-width:355px; padding:4px 5px;
+    width:479px; max-width:479px; padding:5px 7px;
   }
 
   .rich-field.inline-name{ min-height:28px; height:28px; padding:4px 6px; }
-  .rich-field.field-jc{ min-height:25px; height:25px; }
-  .rich-field.field-ap{ min-height:42px; height:42px; }
+  .rich-field.field-jc{ min-height:34px; height:34px; }
+  .rich-field.field-ap{ min-height:57px; height:57px; }
   .rich-field.field-alergia-detalle{
-    width:277px; max-width:277px; min-height:42px; height:42px; padding:4px 5px;
+    width:374px; max-width:374px; min-height:57px; height:57px; padding:5px 7px;
   }
-  .rich-field.field-pte{ min-height:75px; height:75px; }
-  .rich-field.field-otros{ min-height:75px; height:75px; }
+  .rich-field.field-pte{ min-height:101px; height:101px; }
+  .rich-field.field-otros{ min-height:101px; height:101px; }
 
   .rich-field:focus{ border-color: var(--azul); background:#fff; }
-  .rich-field font[size="5"]{ font-size:14px; }
-  .rich-field font[size="3"]{ font-size:13px; }
-  .rich-field font[size="1"]{ font-size:11px; }
+  .rich-field font[size="5"]{ font-size:19px; }
+  .rich-field font[size="3"]{ font-size:18px; }
+  .rich-field font[size="1"]{ font-size:15px; }
 
   .char-counter{
     font-size:.65rem; color:#8a97a3; text-align:right; margin-top:2px;
@@ -220,8 +222,6 @@
   <button class="ghost quick-range" data-from="2306" data-to="2310">2306–2310</button>
   <button class="ghost quick-range" data-from="2311" data-to="2316">2311–2316</button>
   <button class="primary" id="btnPrintSheets">Imprimir PDF</button>
-  <button class="ghost" id="btnZoomOut" title="Reducir zoom">A−</button>
-  <button class="ghost" id="btnZoomIn" title="Aumentar zoom">A+</button>
   <span id="status"></span>
 </div>
 
@@ -965,22 +965,6 @@ document.getElementById('btnPrintSheets').addEventListener('click', async () => 
     setStatus('Error al imprimir: ' + err.message, 'err');
   }
 });
-
-// ===== ZOOM DE VISUALIZACIÓN =====
-let zoomLevel = parseInt(localStorage.getItem('relevoZoom') || '100', 10);
-function applyZoom(){
-  document.body.style.zoom = zoomLevel + '%';
-  localStorage.setItem('relevoZoom', zoomLevel);
-}
-document.getElementById('btnZoomIn').addEventListener('click', () => {
-  zoomLevel = Math.min(160, zoomLevel + 10);
-  applyZoom();
-});
-document.getElementById('btnZoomOut').addEventListener('click', () => {
-  zoomLevel = Math.max(70, zoomLevel - 10);
-  applyZoom();
-});
-applyZoom();
 
 if(getPin()){ loadData(); } else { showLock(); }
 </script>
