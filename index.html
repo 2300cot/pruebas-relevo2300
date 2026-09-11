@@ -77,7 +77,7 @@
   .bed-title .bed-number{ display:flex; align-items:center; gap:4px; white-space:nowrap; }
   .bed-title .header-nombre-box{ flex:1; margin:0 4px; }
   .bed-title .especialidad-select{
-    width:auto; max-width:100px; padding:4px 6px; font-size:.78rem;
+    width:auto; max-width:100px; padding:4px 6px; font-size:.78rem; border-radius:6px;
   }
   .bed-title .especialidad-select.dirty{ border-color:#b4790f; }
   .bed-title .especialidad-select.saved{ border-color:var(--ok); }
@@ -237,7 +237,7 @@
 </div>
 
 <script>
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwJsyd14emBOG8wTNHps1mtsi2bVqwXid85h_h3xvC9-7rSnRlXrLjiaqUC0mm7uog/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzbH2Sbwhr5XPxkJsLeN4rGXeDa9LRIoNumJrfKztRgOZe6PJ2xCoOMSdF1BLE5dRip/exec';
 
 const FIELD_LABELS = {
   nombre: 'Nombre (edad)',
@@ -253,7 +253,7 @@ const FIELD_LABELS = {
   otros: 'Otros'
 };
 
-const RICHTEXT_FIELDS = ['nombre', 'jc', 'ap', 'pte', 'otros'];
+const RICHTEXT_FIELDS = ['nombre', 'jc', 'ap', 'pte', 'otros', 'alergiaDetalle'];
 const ESPECIALIDADES = ['', 'COT', 'CIR', 'MI', 'URO', 'NEU', 'DIG', 'CAR', 'OFT', 'DER', 'ORL', 'NEFR'];
 
 const ESPECIALIDAD_COLORS = {
@@ -381,7 +381,7 @@ function renderBed(roomCode, bedLetter, bed){
   wrap.appendChild(makeField(roomCode, 'jc', bed.jc, bed.jcHtml));
   wrap.appendChild(makeField(roomCode, 'ap', bed.ap, bed.apHtml));
 
-  wrap.appendChild(makeAlergiaRow(roomCode, bed.alergiaSiNo, bed.alergiaDetalle));
+  wrap.appendChild(makeAlergiaRow(roomCode, bed.alergiaSiNo, bed.alergiaDetalle, bed.alergiaDetalleHtml));
 
   const row3 = document.createElement('div');
   row3.className = 'row3';
@@ -537,7 +537,7 @@ function makeField(roomCode, field, value, htmlValue, isRich, grow, isInlineName
   return box;
 }
 
-function makeAlergiaRow(roomCode, siNoValue, detalleValue){
+function makeAlergiaRow(roomCode, siNoValue, detalleValue, detalleHtml){
   const row = document.createElement('div');
   row.className = 'row2';
 
@@ -564,7 +564,10 @@ function makeAlergiaRow(roomCode, siNoValue, detalleValue){
   const inputDetalle = document.createElement('div');
   inputDetalle.contentEditable = 'true';
   inputDetalle.className = 'rich-field field-alergia-detalle alergia-detalle';
-  inputDetalle.textContent = detalleValue || '';
+  inputDetalle.dataset.room = roomCode;
+  inputDetalle.dataset.field = 'alergiaDetalle';
+  if(detalleHtml){ inputDetalle.innerHTML = detalleHtml; }
+  else { inputDetalle.textContent = detalleValue || ''; }
   boxDetalle.appendChild(inputDetalle);
 
   function syncColor(){
@@ -582,7 +585,7 @@ function makeAlergiaRow(roomCode, siNoValue, detalleValue){
   });
   inputDetalle.addEventListener('input', () => {
     boxDetalle.classList.add('dirty'); boxDetalle.classList.remove('saved');
-    scheduleSave(roomCode, 'alergiaDetalle', inputDetalle.textContent, boxDetalle);
+    scheduleSaveRich(inputDetalle, boxDetalle);
   });
   attachOverflowGuard(inputDetalle, boxDetalle);
 
