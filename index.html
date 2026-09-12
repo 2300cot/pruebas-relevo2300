@@ -154,6 +154,21 @@
   .date-input{ width:58px !important; flex:none !important; text-align:center; padding:3px !important; font-size:.8rem !important; }
   .alergia-select{ width:auto; min-width:0; padding-left:4px; padding-right:4px; }
 
+  /* ===== PANEL DE ENLACES DE PDF (cuando hay más de uno) ===== */
+  #printLinksPanel{
+    position:fixed; right:16px; bottom:16px; z-index:140;
+    background:#fff; border:1px solid var(--gris-borde); border-radius:12px;
+    padding:14px; box-shadow:0 8px 24px rgba(0,0,0,.18); max-width:280px;
+    display:flex; flex-direction:column; gap:8px;
+  }
+  .print-links-title{ font-size:.8rem; color:var(--texto); font-weight:700; }
+  .print-link-btn{
+    display:block; background:var(--azul-claro); color:var(--azul);
+    padding:8px 10px; border-radius:8px; text-decoration:none; font-size:.85rem;
+    font-weight:700; text-align:center;
+  }
+  .print-link-btn:hover{ background:#dbe8f2; }
+
   /* ===== BARRA FLOTANTE DE FORMATO ===== */
   #selectionToolbar{
     position:fixed; z-index:150; display:none;
@@ -961,12 +976,54 @@ document.getElementById('btnPrintSheets').addEventListener('click', async () => 
     const res = await fetch(APPS_SCRIPT_URL + '?action=printUrls&rooms=' + encodeURIComponent(selectedRooms.join(',')) + '&pin=' + encodeURIComponent(getPin()));
     const json = await res.json();
     if(!json.ok) throw new Error(json.error || 'Error al obtener URLs');
-    json.urls.forEach(url => window.open(url, '_blank'));
-    setStatus('PDF listo ✓', 'ok');
+    const urls = json.urls;
+    if(urls.length === 0){
+      setStatus('No se encontraron esas habitaciones', 'err');
+      return;
+    }
+    // El navegador solo permite abrir UNA ventana nueva automáticamente por
+    // clic; el resto hay que abrirlas con un clic manual (no se bloquean).
+    window.open(urls[0], '_blank');
+    if(urls.length > 1){
+      showPrintLinks(urls.slice(1));
+      setStatus('1 PDF abierto. Pulsa los enlaces de abajo para abrir los ' + (urls.length - 1) + ' restantes.', 'ok');
+    } else {
+      setStatus('PDF listo ✓', 'ok');
+    }
   }catch(err){
     setStatus('Error al imprimir: ' + err.message, 'err');
   }
 });
+
+function showPrintLinks(urls){
+  let panel = document.getElementById('printLinksPanel');
+  if(panel) panel.remove();
+  panel = document.createElement('div');
+  panel.id = 'printLinksPanel';
+
+  const title = document.createElement('div');
+  title.className = 'print-links-title';
+  title.textContent = 'Abre cada PDF con un clic (el navegador bloquea varios a la vez):';
+  panel.appendChild(title);
+
+  urls.forEach((url, i) => {
+    const a = document.createElement('a');
+    a.href = url;
+    a.target = '_blank';
+    a.className = 'print-link-btn';
+    a.textContent = '📄 Abrir PDF ' + (i + 2) + ' de ' + (urls.length + 1);
+    panel.appendChild(a);
+  });
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'ghost';
+  closeBtn.textContent = 'Cerrar';
+  closeBtn.addEventListener('click', () => panel.remove());
+  panel.appendChild(closeBtn);
+
+  document.body.appendChild(panel);
+}
 
 if(getPin()){ loadData(); } else { showLock(); }
 </script>
