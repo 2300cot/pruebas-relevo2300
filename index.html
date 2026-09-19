@@ -194,6 +194,8 @@
     padding:10px; border:1px solid var(--gris-borde); border-radius:8px; margin-bottom:10px;
   }
   .lock-box button{ width:100%; }
+  .lock-box button:disabled{ opacity:.6; cursor:default; }
+  .lock-box input:disabled{ opacity:.6; }
   .lock-box .err{ color:#b3261e; font-size:.8rem; min-height:1.1em; margin-bottom:8px; }
 </style>
 </head>
@@ -240,7 +242,7 @@
 </div>
 
 <script>
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxsgTBQycNpr3YzLnlcSUmt039k6DW99ipPF_erP7pg5HtJ2tZ_Cw1Qg6Y6Ew2H7VF3/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbynY-SsaHTbp1R7u_egOrTrRZu10r0s4MORDn93fUy-p_mMJr1NQN6mWncr3p2EXmOgYw/exec';
 
 const FIELD_LABELS = {
   nombre: 'Nombre (edad)',
@@ -323,8 +325,23 @@ async function tryUnlock(){
   if(!pin){ return; }
   sessionStorage.setItem('relevoPin', pin);
   document.getElementById('lockErr').textContent = '';
+
+  const btn = document.getElementById('btnUnlock');
+  const pinInputEl = document.getElementById('pinInput');
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  pinInputEl.disabled = true;
+  btn.textContent = 'Entrando…';
+
   const success = await loadData();
-  if(success) hideLock();
+
+  if(success){
+    hideLock();
+  } else {
+    btn.disabled = false;
+    pinInputEl.disabled = false;
+    btn.textContent = originalLabel;
+  }
 }
 
 document.getElementById('btnUnlock').addEventListener('click', tryUnlock);
